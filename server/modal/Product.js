@@ -99,7 +99,7 @@ const productSchema = new mongoose.Schema(
     stock: { type: Number, default: 0, min: 0 },
     lowStockThreshold: { type: Number, default: 5, min: 0 },
 
-    badge: { type: String, enum: ["NEW", "SALE", "PREMIUM", "LIMITED", null, ""] },
+    badge: { type: String, enum: ["NEW", "SALE", "PREMIUM", "LIMITED", "BESTSELLER", "HOT", "FEATURED", "TRENDING", null, ""] },
     isAvailable: { type: Boolean, default: true },
     isActive: { type: Boolean, default: true },
     isDeleted: { type: Boolean, default: false, index: true },

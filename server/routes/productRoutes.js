@@ -12,7 +12,7 @@ const {
   toggleAvailability,
   getCategories,
 } = require("../controller/productController");
-const { auth, adminAuth } = require("../middweare/auth");
+const { auth, adminAuth } = require("../middweare/Auth");
 
 router.get("/", getAllProducts);
 router.get("/categories", getCategories);

@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../modal/User");
-const Admin = require("../modal/admin");
+const Admin = require("../modal/Admin");
 
 const getSecretKey = () => process.env.JWT_KEY || process.env.JWT_SECRET || "secret";
 

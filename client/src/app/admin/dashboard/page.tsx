@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { DollarSign, Package, ShoppingCart, Users, Eye, Loader2 } from "lucide-react";
+import { DollarSign, Package, ShoppingCart, Users, Eye, Loader2, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useGetAllOrdersQuery } from "@/redux/api/order.api";
 import { useGetProductsQuery } from "@/redux/api/product.api";
@@ -23,7 +23,7 @@ export default function AdminDashboard() {
   const isLoading = isLoadingOrders || isLoadingProducts || isLoadingUsers;
 
   const statCards = [
-    { label: "Total Revenue", value: `$${totalRevenue.toFixed(2)}`, icon: DollarSign, color: "text-emerald-500 dark:text-emerald-400", bg: "bg-emerald-500/10" },
+    { label: "Total Revenue", value: `₹${totalRevenue.toLocaleString()}`, icon: DollarSign, color: "text-emerald-500 dark:text-emerald-400", bg: "bg-emerald-500/10" },
     { label: "Total Orders", value: totalOrders, icon: ShoppingCart, color: "text-[#ff6b00]", bg: "bg-[#ff6b00]/10" },
     { label: "Total Products", value: totalProducts, icon: Package, color: "text-blue-500 dark:text-blue-400", bg: "bg-blue-500/10" },
     { label: "Total Customers", value: totalCustomers, icon: Users, color: "text-purple-500 dark:text-purple-400", bg: "bg-purple-500/10" },
@@ -80,13 +80,20 @@ export default function AdminDashboard() {
               {topProducts.map((product) => (
                 <div key={product._id || product.id} className="flex items-center justify-between py-2 border-b border-black/5 dark:border-white/[0.04] last:border-0">
                   <div className="flex items-center gap-3">
-                    <img src={product.image} alt={product.name} className="h-10 w-10 rounded-lg object-cover bg-neutral-100 dark:bg-white/5" />
+                    <img
+                      src={product.image || "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=100&h=100&fit=crop"}
+                      alt={product.name}
+                      onError={(e) => {
+                        e.currentTarget.src = "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=100&h=100&fit=crop";
+                      }}
+                      className="h-10 w-10 rounded-lg object-cover bg-neutral-100 dark:bg-white/5 border border-white/10"
+                    />
                     <div>
-                      <p className="text-sm font-semibold text-neutral-900 dark:text-white">{product.name}</p>
+                      <p className="text-sm font-semibold text-neutral-900 dark:text-white truncate max-w-xs sm:max-w-md">{product.name}</p>
                       <p className="text-[11px] text-neutral-500 dark:text-white/40 capitalize">{product.category}</p>
                     </div>
                   </div>
-                  <span className="text-sm font-bold text-[#ff6b00]">${product.price}</span>
+                  <span className="text-sm font-bold text-[#ff6b00]">₹{product.price?.toLocaleString()}</span>
                 </div>
               ))}
             </div>
@@ -95,19 +102,57 @@ export default function AdminDashboard() {
 
         {/* Quick Actions */}
         <div className="rounded-2xl border border-black/10 dark:border-white/[0.06] bg-white dark:bg-[#0c0c0c] p-6 shadow-xs flex flex-col justify-between">
-          <h3 className="text-base font-bold text-neutral-900 dark:text-white mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-3 gap-2.5 flex-1">
-            <Link href="/admin/products" className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-black/10 dark:border-white/[0.06] p-3 hover:border-[#ff6b00]/40 hover:bg-[#ff6b00]/5 transition-all">
-              <Package size={16} className="text-[#ff6b00]" />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-700 dark:text-white/70 text-center">Products</span>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-bold text-neutral-900 dark:text-white">Quick Actions</h3>
+            <span className="text-[10px] font-semibold text-[#ff6b00] uppercase tracking-wider">Shortcuts</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-3 flex-1">
+            <Link
+              href="/admin/products"
+              className="group flex items-center justify-between rounded-xl border border-black/10 dark:border-white/[0.06] bg-neutral-50 dark:bg-white/[0.02] p-3.5 hover:border-[#ff6b00]/50 hover:bg-[#ff6b00]/5 transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#ff6b00]/10 text-[#ff6b00]">
+                  <Package size={18} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-neutral-900 dark:text-white">Products Studio</p>
+                  <p className="text-[10px] text-neutral-500 dark:text-white/40">Manage & create products</p>
+                </div>
+              </div>
+              <ArrowRight size={14} className="text-white/30 group-hover:text-[#ff6b00] group-hover:translate-x-1 transition-all" />
             </Link>
-            <Link href="/admin/orders" className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-black/10 dark:border-white/[0.06] p-3 hover:border-[#ff6b00]/40 hover:bg-[#ff6b00]/5 transition-all">
-              <ShoppingCart size={16} className="text-[#ff6b00]" />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-700 dark:text-white/70 text-center">Orders</span>
+
+            <Link
+              href="/admin/orders"
+              className="group flex items-center justify-between rounded-xl border border-black/10 dark:border-white/[0.06] bg-neutral-50 dark:bg-white/[0.02] p-3.5 hover:border-[#ff6b00]/50 hover:bg-[#ff6b00]/5 transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#ff6b00]/10 text-[#ff6b00]">
+                  <ShoppingCart size={18} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-neutral-900 dark:text-white">Orders Manager</p>
+                  <p className="text-[10px] text-neutral-500 dark:text-white/40">Track customer orders</p>
+                </div>
+              </div>
+              <ArrowRight size={14} className="text-white/30 group-hover:text-[#ff6b00] group-hover:translate-x-1 transition-all" />
             </Link>
-            <Link href="/admin/messages" className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-black/10 dark:border-white/[0.06] p-3 hover:border-[#ff6b00]/40 hover:bg-[#ff6b00]/5 transition-all">
-              <Eye size={16} className="text-[#ff6b00]" />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-700 dark:text-white/70 text-center">Messages</span>
+
+            <Link
+              href="/admin/messages"
+              className="group flex items-center justify-between rounded-xl border border-black/10 dark:border-white/[0.06] bg-neutral-50 dark:bg-white/[0.02] p-3.5 hover:border-[#ff6b00]/50 hover:bg-[#ff6b00]/5 transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#ff6b00]/10 text-[#ff6b00]">
+                  <Eye size={18} />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-neutral-900 dark:text-white">Customer Inquiries</p>
+                  <p className="text-[10px] text-neutral-500 dark:text-white/40">View contact messages</p>
+                </div>
+              </div>
+              <ArrowRight size={14} className="text-white/30 group-hover:text-[#ff6b00] group-hover:translate-x-1 transition-all" />
             </Link>
           </div>
         </div>
@@ -149,7 +194,7 @@ export default function AdminDashboard() {
                       </td>
                       <td className="py-3.5 text-xs font-semibold text-neutral-900 dark:text-white">{customerName}</td>
                       <td className="py-3.5 text-xs text-neutral-600 dark:text-white/60">{order.items?.length || 0} items</td>
-                      <td className="py-3.5 text-xs font-bold text-neutral-900 dark:text-white">${order.total?.toFixed(2)}</td>
+                      <td className="py-3.5 text-xs font-bold text-neutral-900 dark:text-white">₹{order.total?.toLocaleString() || 0}</td>
                       <td className="py-3.5">
                         <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${isOnline ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20" : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"}`}>
                           {isOnline ? "Online" : "COD"}

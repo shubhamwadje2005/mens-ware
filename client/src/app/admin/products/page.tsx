@@ -998,8 +998,11 @@ export default function AdminProductsPage() {
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <img
-                            src={p.image || "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100"}
+                            src={p.image || "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=100&h=100&fit=crop"}
                             alt={p.name}
+                            onError={(e) => {
+                              e.currentTarget.src = "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=100&h=100&fit=crop";
+                            }}
                             className="h-12 w-10 rounded-lg object-cover border border-white/10 shrink-0"
                           />
                           <div className="min-w-0">

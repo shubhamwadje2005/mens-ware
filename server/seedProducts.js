@@ -243,10 +243,10 @@ const productsData = [
     badge: "LIMITED",
     price: 6999,
     originalPrice: 9999,
-    image: "https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=1200&q=80",
+    image: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1200&q=80",
     hoverImage: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1200&q=80",
     images: [
-      { url: "https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 },
+      { url: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 },
       { url: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: false, sortOrder: 1 },
       { url: "https://images.unsplash.com/photo-1565084888279-aca607ecce0c?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: false, sortOrder: 2 }
     ],
@@ -256,7 +256,7 @@ const productsData = [
         hex: "#1A2A44",
         skuCode: "IND",
         images: [
-          { url: "https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 }
+          { url: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 }
         ]
       },
       {

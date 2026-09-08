@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { getBaseUrl } from "@/config/api";
 
 export interface StatItem {
   value: string;
@@ -8,38 +9,33 @@ export interface StatItem {
 export interface ValueItem {
   title: string;
   description: string;
-  icon: string;
+  icon?: string;
+  number?: string;
 }
 
 export interface AboutData {
   _id?: string;
-  heroTitle: string;
-  heroSubtitle: string;
-  heroImage: string;
-  stats: StatItem[];
-  storyBadge: string;
-  storyHeading: string;
-  storyParagraphs: string[];
-  storyImage: string;
-  storyEstYear: string;
-  storyLocation: string;
-  valuesHeading: string;
-  values: ValueItem[];
-  isActive: boolean;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  heroImage?: string;
+  stats?: StatItem[];
+  storyBadge?: string;
+  storyHeading?: string;
+  storyParagraphs?: string[];
+  storyImage?: string;
+  storyEstYear?: string;
+  storyLocation?: string;
+  valuesHeading?: string;
+  values?: ValueItem[];
+  isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
 
-const getApiBase = () => {
-  const raw = process.env.NEXT_PUBLIC_API_URL || "https://server-mens-ware.vercel.app/api";
-  const clean = raw.replace(/\/$/, "");
-  return clean.endsWith("/api") ? clean : `${clean}/api`;
-};
-
 export const aboutApi = createApi({
   reducerPath: "aboutApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: `${getApiBase()}/about`,
+    baseUrl: `${getBaseUrl()}/about`,
     credentials: "include",
     prepareHeaders: (headers) => {
       if (typeof window !== "undefined") {

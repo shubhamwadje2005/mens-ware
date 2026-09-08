@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { getBaseUrl } from "@/config/api";
 
 interface AdminUser {
   id: string;
@@ -55,10 +56,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      const envUrl = process.env.NEXT_PUBLIC_API_URL;
-      const rawUrl = envUrl && !envUrl.includes("localhost:5000") ? envUrl : "https://server-mens-ware.vercel.app/api";
-      const clean = rawUrl.replace(/\/$/, "");
-      const API_BASE = clean.endsWith("/api") ? clean : `${clean}/api`;
+      const API_BASE = getBaseUrl();
       const res = await fetch(`${API_BASE}/auth/admin-login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -91,10 +89,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      const envUrl = process.env.NEXT_PUBLIC_API_URL;
-      const rawUrl = envUrl && !envUrl.includes("localhost:5000") ? envUrl : "https://server-mens-ware.vercel.app/api";
-      const clean = rawUrl.replace(/\/$/, "");
-      const API_BASE = clean.endsWith("/api") ? clean : `${clean}/api`;
+      const API_BASE = getBaseUrl();
       await fetch(`${API_BASE}/auth/admin-logout`, {
         method: "POST",
         credentials: "include",

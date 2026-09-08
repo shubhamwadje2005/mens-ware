@@ -11,6 +11,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
+import { getBaseUrl } from "@/config/api";
+
 declare global {
   interface Window {
     Razorpay: any;
@@ -38,8 +40,8 @@ export default function RazorpayModal({
   isOpen,
   amount,
   customerName,
-  customerEmail,
-  customerPhone,
+  customerEmail = "",
+  customerPhone = "",
   onClose,
   onSuccess,
 }: RazorpayModalProps) {
@@ -52,9 +54,7 @@ export default function RazorpayModal({
   const [paymentSuccess, setPaymentSuccess] =
     useState(false);
 
-  const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "https://server-mens-ware.vercel.app/api";
-  const cleanUrl = rawApiUrl.replace(/\/$/, "");
-  const API_URL = cleanUrl.endsWith("/api") ? cleanUrl : `${cleanUrl}/api`;
+  const API_URL = getBaseUrl();
 
   const RAZORPAY_KEY_ID =
     process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;

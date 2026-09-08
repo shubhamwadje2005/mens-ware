@@ -1,19 +1,11 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { LoginRequest, RegisterRequest, LoginResponse, LogoutResponse } from "@/types";
-
-const getApiBase = () => {
-  const raw = process.env.NEXT_PUBLIC_API_URL || "https://server-mens-ware.vercel.app/api";
-  const clean = raw.replace(/\/$/, "");
-  return clean.endsWith("/api") ? clean : `${clean}/api`;
-};
-
-
-
+import { getBaseUrl } from "@/config/api";
 
 export const authApi = createApi({
   reducerPath: "authApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: `${getApiBase()}/auth`,
+    baseUrl: `${getBaseUrl()}/auth`,
     prepareHeaders: (headers) => {
       if (typeof window !== "undefined") {
         const token = localStorage.getItem("token");

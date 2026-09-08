@@ -1,4 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { getBaseUrl } from "@/config/api";
 
 export interface Campaign {
   _id: string;
@@ -14,18 +15,10 @@ export interface Campaign {
   updatedAt?: string;
 }
 
-const getApiBase = () => {
-  const raw = process.env.NEXT_PUBLIC_API_URL || "https://server-mens-ware.vercel.app/api";
-  const clean = raw.replace(/\/$/, "");
-  return clean.endsWith("/api") ? clean : `${clean}/api`;
-};
-
-
-
 export const campaignApi = createApi({
   reducerPath: "campaignApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: `${getApiBase()}/campaign`,
+    baseUrl: `${getBaseUrl()}/campaign`,
     credentials: "include",
     prepareHeaders: (headers) => {
       if (typeof window !== "undefined") {

@@ -1,12 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-
-const getApiBase = () => {
-  const raw = process.env.NEXT_PUBLIC_API_URL || "https://server-mens-ware.vercel.app/api";
-  const clean = raw.replace(/\/$/, "");
-  return clean.endsWith("/api") ? clean : `${clean}/api`;
-};
-
-
+import { getBaseUrl } from "@/config/api";
 
 export interface CreateOrderRequest {
   amount: number;
@@ -49,7 +42,7 @@ export interface VerifyPaymentResponse {
 export const paymentApi = createApi({
   reducerPath: "paymentApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: `${getApiBase()}/payment`,
+    baseUrl: `${getBaseUrl()}/payment`,
     prepareHeaders: (headers) => {
       if (typeof window !== "undefined") {
         const token = localStorage.getItem("token");

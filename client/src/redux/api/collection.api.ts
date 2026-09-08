@@ -1,19 +1,11 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { Collection } from "@/types";
-
-const getApiBase = () => {
-  const raw = process.env.NEXT_PUBLIC_API_URL || "https://server-mens-ware.vercel.app/api";
-  const clean = raw.replace(/\/$/, "");
-  return clean.endsWith("/api") ? clean : `${clean}/api`;
-};
-
-
-
+import { getBaseUrl } from "@/config/api";
 
 export const collectionApi = createApi({
   reducerPath: "collectionApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: `${getApiBase()}/collections`,
+    baseUrl: `${getBaseUrl()}/collections`,
     credentials: "include",
     prepareHeaders: (headers) => {
       if (typeof window !== "undefined") {

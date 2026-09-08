@@ -39,14 +39,7 @@ function saveStoredUsers(users: StoredUser[]) {
   localStorage.setItem("noir-users", JSON.stringify(users));
 }
 
-const getApiBase = () => {
-  const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  const rawUrl = envUrl && !envUrl.includes("localhost:5000")
-    ? envUrl
-    : "https://server-mens-ware.vercel.app/api";
-  const clean = rawUrl.replace(/\/$/, "");
-  return clean.endsWith("/api") ? clean : `${clean}/api`;
-};
+import { getBaseUrl } from "@/config/api";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -64,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     if (token) {
-      const API_BASE = getApiBase();
+      const API_BASE = getBaseUrl();
       fetch(`${API_BASE.replace(/\/$/, "")}/auth/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -108,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      const API_BASE = getApiBase();
+      const API_BASE = getBaseUrl();
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -160,7 +153,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(async (name: string, email: string, password: string) => {
     try {
-      const API_BASE = getApiBase();
+      const API_BASE = getBaseUrl();
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -217,7 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = localStorage.getItem("token");
       if (token) {
         try {
-          const API_BASE = getApiBase();
+          const API_BASE = getBaseUrl();
           const res = await fetch(`${API_BASE}/auth/profile`, {
             method: "PUT",
             headers: {
@@ -276,7 +269,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const token = localStorage.getItem("token");
       if (token) {
-        const API_BASE = getApiBase();
+        const API_BASE = getBaseUrl();
         fetch(`${API_BASE}/auth/address`, {
           method: "POST",
           headers: {
@@ -303,7 +296,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const token = localStorage.getItem("token");
       if (token && id.length === 24) {
-        const API_BASE = getApiBase();
+        const API_BASE = getBaseUrl();
         fetch(`${API_BASE}/auth/address/${id}`, {
           method: "PUT",
           headers: {
@@ -328,7 +321,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const token = localStorage.getItem("token");
       if (token && id.length === 24) {
-        const API_BASE = getApiBase();
+        const API_BASE = getBaseUrl();
         fetch(`${API_BASE}/auth/address/${id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },

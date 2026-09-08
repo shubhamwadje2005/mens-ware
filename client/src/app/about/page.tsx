@@ -115,7 +115,7 @@ export default function AboutPage() {
             )}
 
             {/* Story */}
-            {(about.storyHeading || about.storyParagraphs?.length > 0) && (
+            {(about.storyHeading || (about.storyParagraphs && about.storyParagraphs.length > 0)) && (
               <section className="py-16 sm:py-24">
                 <div className="mx-auto max-w-[1600px] px-5 sm:px-6 md:px-8">
                   <div className="grid items-center gap-10 sm:gap-16 lg:grid-cols-2">

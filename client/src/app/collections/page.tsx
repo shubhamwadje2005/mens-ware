@@ -23,16 +23,17 @@ const ToastContainer = dynamic(() => import("@/components/toast/ToastContainer")
 const SearchModal = dynamic(() => import("@/components/search/SearchModal"));
 
 const categoryFallbackImages: Record<string, string> = {
-  "Oversized T-Shirts": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=1000&fit=crop",
-  "Premium Shirts": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800&h=1000&fit=crop",
-  "Formal Shirts": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=800&h=1000&fit=crop",
-  "Cargo Pants": "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=800&h=1000&fit=crop",
-  "Jeans": "https://images.unsplash.com/photo-1542272604-787c3835535d?w=800&h=1000&fit=crop",
-  "Formal Pants": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=800&h=1000&fit=crop",
-  "Hoodies": "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800&h=1000&fit=crop",
-  "Jackets": "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800&h=1000&fit=crop",
-  "Sneakers": "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=800&h=1000&fit=crop",
-  "Accessories": "https://images.unsplash.com/photo-1611085583191-a3b181a88401?w=800&h=1000&fit=crop",
+  "Suits & Blazers": "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&h=1000&fit=crop&q=80",
+  "Formal Shirts": "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=800&h=1000&fit=crop&q=80",
+  "Premium Shirts": "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800&h=1000&fit=crop&q=80",
+  "Oversized T-Shirts": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=1000&fit=crop&q=80",
+  "Cargo Pants": "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=800&h=1000&fit=crop&q=80",
+  "Jeans": "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&h=1000&fit=crop&q=80",
+  "Formal Pants": "https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=800&h=1000&fit=crop&q=80",
+  "Hoodies": "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=800&h=1000&fit=crop&q=80",
+  "Jackets": "https://images.unsplash.com/photo-1520975916090-3105956dac38?w=800&h=1000&fit=crop&q=80",
+  "Sneakers": "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=800&h=1000&fit=crop&q=80",
+  "Accessories": "https://images.unsplash.com/photo-1611085583191-a3b181a88401?w=800&h=1000&fit=crop&q=80",
 };
 
 export default function CollectionsPage() {
@@ -141,31 +142,37 @@ export default function CollectionsPage() {
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
-                {displayCategories.map((category, index) => (
-                  <Link key={category.name} href={`/shop?category=${encodeURIComponent(category.name)}`}>
-                    <motion.div
-                      className="preserve-white group relative overflow-hidden rounded-xl sm:rounded-2xl border border-white/[0.08] cursor-pointer shadow-xl"
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 + index * 0.05 }}
-                    >
-                      <img
-                        src={category.image}
-                        alt={category.name}
-                        className="aspect-[4/5] w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-                      <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6">
-                        <h3 className="text-lg font-light text-white sm:text-xl transition-colors group-hover:text-[#ff6b00]">
-                          {category.name}
-                        </h3>
-                        <p className="text-[10px] text-white/60 sm:text-xs">
-                          {category.productCount} {category.productCount === 1 ? "piece" : "pieces"}
-                        </p>
-                      </div>
-                    </motion.div>
-                  </Link>
-                ))}
+                {displayCategories.map((category, index) => {
+                  const fallback = categoryFallbackImages[category.name] || "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&h=1000&fit=crop&q=80";
+                  return (
+                    <Link key={category.name} href={`/shop?category=${encodeURIComponent(category.name)}`}>
+                      <motion.div
+                        className="preserve-white group relative aspect-[3/4] overflow-hidden rounded-xl sm:rounded-2xl border border-white/[0.08] cursor-pointer shadow-xl bg-[#0c0c0c]"
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 + index * 0.05 }}
+                      >
+                        <img
+                          src={category.image}
+                          alt={category.name}
+                          onError={(e) => {
+                            e.currentTarget.src = fallback;
+                          }}
+                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+                        <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6">
+                          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#ff6b00]">
+                            {category.productCount} {category.productCount === 1 ? "piece" : "pieces"}
+                          </span>
+                          <h3 className="text-lg font-light text-white sm:text-xl transition-colors group-hover:text-white mt-1">
+                            {category.name}
+                          </h3>
+                        </div>
+                      </motion.div>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           )}

@@ -145,6 +145,9 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
             <img
               src={product.image}
               alt={product.name}
+              onError={(e) => {
+                e.currentTarget.src = "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&h=800&fit=crop&q=80";
+              }}
               className={`h-full w-full object-cover transition-all duration-700 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] group-hover:scale-110 ${
                 !isAvailable ? "opacity-85 grayscale-[20%]" : ""
               }`}
@@ -153,6 +156,9 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
               <img
                 src={product.hoverImage}
                 alt={product.name}
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
                 className={`absolute inset-0 h-full w-full object-cover opacity-0 transition-all duration-700 group-hover:opacity-100 ${
                   !isAvailable ? "opacity-85 grayscale-[20%]" : ""
                 }`}

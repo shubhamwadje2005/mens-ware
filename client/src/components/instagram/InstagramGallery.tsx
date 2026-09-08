@@ -53,6 +53,9 @@ export default function InstagramGallery() {
               <img
                 src={product.image}
                 alt={product.name}
+                onError={(e) => {
+                  e.currentTarget.src = "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&h=600&fit=crop&q=80";
+                }}
                 className="aspect-square w-full object-cover transition-transform duration-700 group-hover:scale-110"
               />
               <div className="preserve-white absolute inset-0 flex items-center justify-center bg-black/70 opacity-0 backdrop-blur-sm transition-all duration-400 group-hover:opacity-100">

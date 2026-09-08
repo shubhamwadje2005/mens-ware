@@ -52,9 +52,9 @@ export default function RazorpayModal({
   const [paymentSuccess, setPaymentSuccess] =
     useState(false);
 
-  const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-  // Remove trailing slash only, keep any existing path like /api
-  const API_URL = rawApiUrl.replace(/\/$/, "");
+  const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "https://server-mens-ware.vercel.app/api";
+  const cleanUrl = rawApiUrl.replace(/\/$/, "");
+  const API_URL = cleanUrl.endsWith("/api") ? cleanUrl : `${cleanUrl}/api`;
 
   const RAZORPAY_KEY_ID =
     process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;

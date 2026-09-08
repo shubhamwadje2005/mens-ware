@@ -39,6 +39,12 @@ function saveStoredUsers(users: StoredUser[]) {
   localStorage.setItem("noir-users", JSON.stringify(users));
 }
 
+const getApiBase = () => {
+  const rawUrl = process.env.NEXT_PUBLIC_API_URL || "https://server-mens-ware.vercel.app/api";
+  const clean = rawUrl.replace(/\/$/, "");
+  return clean.endsWith("/api") ? clean : `${clean}/api`;
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -55,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     if (token) {
-      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+      const API_BASE = getApiBase();
       fetch(`${API_BASE.replace(/\/$/, "")}/auth/profile`, {
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -99,8 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-      const API_BASE = rawUrl.replace(/\/$/, "");
+      const API_BASE = getApiBase();
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -152,8 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(async (name: string, email: string, password: string) => {
     try {
-      const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-      const API_BASE = rawUrl.replace(/\/$/, "");
+      const API_BASE = getApiBase();
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -210,8 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = localStorage.getItem("token");
       if (token) {
         try {
-          const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-          const API_BASE = rawUrl.replace(/\/$/, "");
+          const API_BASE = getApiBase();
           const res = await fetch(`${API_BASE}/auth/profile`, {
             method: "PUT",
             headers: {
@@ -270,8 +273,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const token = localStorage.getItem("token");
       if (token) {
-        const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-        const API_BASE = rawUrl.replace(/\/$/, "");
+        const API_BASE = getApiBase();
         fetch(`${API_BASE}/auth/address`, {
           method: "POST",
           headers: {
@@ -298,8 +300,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const token = localStorage.getItem("token");
       if (token && id.length === 24) {
-        const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-        const API_BASE = rawUrl.replace(/\/$/, "");
+        const API_BASE = getApiBase();
         fetch(`${API_BASE}/auth/address/${id}`, {
           method: "PUT",
           headers: {
@@ -324,8 +325,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const token = localStorage.getItem("token");
       if (token && id.length === 24) {
-        const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-        const API_BASE = rawUrl.replace(/\/$/, "");
+        const API_BASE = getApiBase();
         fetch(`${API_BASE}/auth/address/${id}`, {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },

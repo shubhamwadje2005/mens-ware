@@ -2,7 +2,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { User } from "@/types";
 
 const getApiBase = () => {
-  const raw = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  const raw = process.env.NEXT_PUBLIC_API_URL || "https://server-mens-ware.vercel.app/api";
   const clean = raw.replace(/\/$/, "");
   return clean.endsWith("/api") ? clean : `${clean}/api`;
 };

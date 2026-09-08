@@ -55,8 +55,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     try {
-      const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-      const API_BASE = rawUrl.replace(/\/$/, "");
+      const rawUrl = process.env.NEXT_PUBLIC_API_URL || "https://server-mens-ware.vercel.app/api";
+      const clean = rawUrl.replace(/\/$/, "");
+      const API_BASE = clean.endsWith("/api") ? clean : `${clean}/api`;
       const res = await fetch(`${API_BASE}/auth/admin-login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -89,8 +90,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-      const API_BASE = rawUrl.replace(/\/$/, "");
+      const rawUrl = process.env.NEXT_PUBLIC_API_URL || "https://server-mens-ware.vercel.app/api";
+      const clean = rawUrl.replace(/\/$/, "");
+      const API_BASE = clean.endsWith("/api") ? clean : `${clean}/api`;
       await fetch(`${API_BASE}/auth/admin-logout`, {
         method: "POST",
         credentials: "include",

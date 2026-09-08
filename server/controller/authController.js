@@ -1,7 +1,7 @@
 const User = require("../modal/User");
 const jwt = require("jsonwebtoken");
 const bcryptjs = require("bcryptjs");
-const Admin = require("../modal/admin");
+const Admin = require("../modal/Admin");
 
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_KEY, { expiresIn: "7d" });

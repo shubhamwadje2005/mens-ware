@@ -1,5 +1,5 @@
 const User = require("../modal/User");
-const Admin = require("../modal/admin");
+const Admin = require("../modal/Admin");
 
 exports.getAllUsers = async (req, res) => {
   try {

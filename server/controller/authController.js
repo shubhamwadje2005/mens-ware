@@ -167,7 +167,7 @@ exports.adminLogin = async (req, res) => {
     });
     res.status(200).json({
       message: "Admin Login Success",
-      // token,
+      token,
       result: {
         name: result.name,
         email: result.email,

@@ -40,7 +40,10 @@ function saveStoredUsers(users: StoredUser[]) {
 }
 
 const getApiBase = () => {
-  const rawUrl = process.env.NEXT_PUBLIC_API_URL || "https://server-mens-ware.vercel.app/api";
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  const rawUrl = envUrl && !envUrl.includes("localhost:5000")
+    ? envUrl
+    : "https://server-mens-ware.vercel.app/api";
   const clean = rawUrl.replace(/\/$/, "");
   return clean.endsWith("/api") ? clean : `${clean}/api`;
 };

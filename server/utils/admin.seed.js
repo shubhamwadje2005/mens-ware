@@ -1,8 +1,10 @@
-require("dotenv").config({ path: "./../.env" })
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "../.env") });
+require("dotenv").config();
 
-const mongoose = require("mongoose")
-const bcrypt = require("bcryptjs")
-const Admin = require("../modal/Admin")
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
+const Admin = require("../modal/Admin");
 
 const seedAdmin = async () => {
     try {

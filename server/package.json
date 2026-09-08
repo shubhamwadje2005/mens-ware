@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js",
-    "seed": "cd utils && node admin.seed.js"
+    "seed": "node utils/admin.seed.js"
   },
   "keywords": [],
   "author": "",

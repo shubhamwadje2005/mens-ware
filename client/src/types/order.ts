@@ -3,9 +3,15 @@ import { Address, User } from "./user";
 
 export interface OrderItem {
   product: Product | string;
+  variantId?: string;
+  name?: string;
+  image?: string;
+  slug?: string;
+  sku?: string;
   quantity: number;
   selectedSize?: string;
   selectedColor?: string;
+  colorCode?: string;
   price: number;
 }
 

@@ -22,14 +22,29 @@ export default function WishlistPage() {
 
   const handleMoveToCart = (product: typeof items[0]["product"]) => {
     const size = product.sizes?.[0];
-    const color = product.colors?.[0];
-    addItem(product, size, color);
-    removeItem(product.id);
+    const color = product.colors?.[0] || product.colorOptions?.[0]?.name;
+    const defaultVariant = product.variants?.[0];
+    addItem(
+      product,
+      size,
+      color,
+      defaultVariant
+        ? {
+            variantId: defaultVariant._id,
+            sku: defaultVariant.sku,
+            price: defaultVariant.sellingPrice,
+            image: defaultVariant.images?.[0] || product.image,
+            stock: defaultVariant.stock,
+            colorCode: defaultVariant.colorCode,
+          }
+        : undefined
+    );
+    removeItem(product._id || product.id || "");
     addToast(`${product.name} moved to cart`);
   };
 
   const handleRemove = (product: typeof items[0]["product"]) => {
-    removeItem(product.id);
+    removeItem(product._id || product.id || "");
     addToast(`${product.name} removed from wishlist`);
   };
 
@@ -92,7 +107,7 @@ export default function WishlistPage() {
               <AnimatePresence>
                 {items.map((item) => (
                   <motion.div
-                    key={item.product.id}
+                    key={item.product._id || item.product.id || item.product.slug}
                     layout
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}

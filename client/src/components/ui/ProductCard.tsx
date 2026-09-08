@@ -22,8 +22,9 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   const { isInWishlist, toggleItem } = useWishlist();
   const { addToast } = useToast();
 
-  const inWishlist = isInWishlist(product._id || product.id);
-  const inCart = isInCart(product._id || product.id);
+  const prodId = product._id || product.id || product.slug || "";
+  const inWishlist = isInWishlist(prodId);
+  const inCart = isInCart(prodId);
 
   const isAvailable = product.isAvailable !== false;
 
@@ -47,8 +48,23 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       return;
     }
     const defaultSize = product.sizes?.[0];
-    const defaultColor = product.colors?.[0];
-    addItem(product, defaultSize, defaultColor);
+    const defaultColor = product.colors?.[0] || product.colorOptions?.[0]?.name;
+    const defaultVariant = product.variants?.[0];
+    addItem(
+      product,
+      defaultSize,
+      defaultColor,
+      defaultVariant
+        ? {
+            variantId: defaultVariant._id,
+            sku: defaultVariant.sku,
+            price: defaultVariant.sellingPrice,
+            image: defaultVariant.images?.[0] || product.image,
+            stock: defaultVariant.stock,
+            colorCode: defaultVariant.colorCode,
+          }
+        : undefined
+    );
     addToast(`${product.name} added to cart`);
   };
 
@@ -60,8 +76,23 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       return;
     }
     const defaultSize = product.sizes?.[0];
-    const defaultColor = product.colors?.[0];
-    addItem(product, defaultSize, defaultColor);
+    const defaultColor = product.colors?.[0] || product.colorOptions?.[0]?.name;
+    const defaultVariant = product.variants?.[0];
+    addItem(
+      product,
+      defaultSize,
+      defaultColor,
+      defaultVariant
+        ? {
+            variantId: defaultVariant._id,
+            sku: defaultVariant.sku,
+            price: defaultVariant.sellingPrice,
+            image: defaultVariant.images?.[0] || product.image,
+            stock: defaultVariant.stock,
+            colorCode: defaultVariant.colorCode,
+          }
+        : undefined
+    );
     router.push("/checkout");
   };
 

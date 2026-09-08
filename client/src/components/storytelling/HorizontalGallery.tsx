@@ -162,7 +162,7 @@ export default function HorizontalGallery() {
   }
 
   const galleryItems = dbProducts.map((p) => ({
-    id: p._id || p.id,
+    id: p._id || p.id || p.slug,
     image: p.image,
     title: p.name,
     price: `$${p.price}`,

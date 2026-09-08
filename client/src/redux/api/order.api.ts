@@ -22,7 +22,19 @@ export const orderApi = createApi({
     createOrder: builder.mutation<
       Order,
       {
-        items: { product: string; quantity: number; selectedSize?: string; selectedColor?: string }[];
+        items: {
+          product: string;
+          variantId?: string;
+          name?: string;
+          image?: string;
+          slug?: string;
+          sku?: string;
+          quantity: number;
+          selectedSize?: string;
+          selectedColor?: string;
+          colorCode?: string;
+          price?: number;
+        }[];
         address: Address;
         paymentMethod?: string;
         paymentStatus?: string;

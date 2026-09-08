@@ -33,8 +33,14 @@ export default function CartPage() {
     }
   };
 
-  const handleRemoveItem = (productId: string, name: string, size?: string, color?: string) => {
-    removeItem(productId, size, color);
+  const handleRemoveItem = (
+    productId: string,
+    name: string,
+    size?: string,
+    color?: string,
+    variantId?: string
+  ) => {
+    removeItem(productId, size, color, variantId);
     addToast(`${name} removed from cart`);
   };
 
@@ -98,92 +104,118 @@ export default function CartPage() {
               <div className="lg:col-span-2">
                 <div className="space-y-4">
                   <AnimatePresence>
-                    {items.map((item) => (
-                      <motion.div
-                        key={`${item.product.id}-${item.selectedSize}-${item.selectedColor}`}
-                        layout
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20, height: 0 }}
-                        className="flex gap-4 rounded-xl border border-white/[0.06] bg-[#0c0c0c] p-4 sm:gap-6 sm:p-5"
-                      >
-                        <Link href={`/product/${item.product.slug}`} className="shrink-0">
-                          <img
-                            src={item.product.image}
-                            alt={item.product.name}
-                            className="h-24 w-20 rounded-lg object-cover sm:h-32 sm:w-24"
-                          />
-                        </Link>
-                        <div className="flex flex-1 flex-col justify-between min-w-0">
-                          <div>
-                            <p className="text-[10px] font-semibold tracking-wider text-[#ff6b00]/60 uppercase mb-1">
-                              {item.product.category}
-                            </p>
-                            <Link
-                              href={`/product/${item.product.slug}`}
-                              className="text-sm font-medium text-white hover:text-[#ff6b00] transition-colors truncate block"
-                            >
-                              {item.product.name}
-                            </Link>
-                            <div className="mt-1 flex flex-wrap gap-2 text-xs text-white/40">
-                              {item.selectedSize && <span>Size: {item.selectedSize}</span>}
-                              {item.selectedColor && (
-                                <span className="flex items-center gap-1">
-                                  Color: <span className="h-3 w-3 rounded-full border border-white/20 inline-block" style={{ backgroundColor: item.selectedColor }} />
-                                </span>
-                              )}
+                    {items.map((item) => {
+                      const prodId = item.product._id || item.product.id || "";
+                      const unitPrice = item.price !== undefined ? item.price : item.product.price;
+                      const displayImg = item.image || item.product.image;
+                      const itemKey = `${prodId}-${item.variantId || ""}-${item.selectedSize || ""}-${item.selectedColor || ""}`;
+
+                      return (
+                        <motion.div
+                          key={itemKey}
+                          layout
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20, height: 0 }}
+                          className="flex gap-4 rounded-xl border border-white/[0.06] bg-[#0c0c0c] p-4 sm:gap-6 sm:p-5"
+                        >
+                          <Link href={`/product/${item.product.slug}`} className="shrink-0">
+                            <img
+                              src={displayImg}
+                              alt={item.product.name}
+                              className="h-24 w-20 rounded-lg object-cover sm:h-32 sm:w-24 border border-white/10"
+                            />
+                          </Link>
+                          <div className="flex flex-1 flex-col justify-between min-w-0">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-[10px] font-semibold tracking-wider text-[#ff6b00]/70 uppercase">
+                                  {item.product.category}
+                                </p>
+                                {item.sku && (
+                                  <span className="text-[9px] font-mono text-white/30 tracking-wider">
+                                    SKU: {item.sku}
+                                  </span>
+                                )}
+                              </div>
+                              <Link
+                                href={`/product/${item.product.slug}`}
+                                className="text-sm font-medium text-white hover:text-[#ff6b00] transition-colors truncate block"
+                              >
+                                {item.product.name}
+                              </Link>
+                              <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-white/50">
+                                {item.selectedSize && (
+                                  <span className="inline-flex items-center gap-1 rounded bg-white/[0.04] px-2 py-0.5 border border-white/[0.08]">
+                                    Size: <strong className="text-white">{item.selectedSize}</strong>
+                                  </span>
+                                )}
+                                {item.selectedColor && (
+                                  <span className="inline-flex items-center gap-1.5 rounded bg-white/[0.04] px-2 py-0.5 border border-white/[0.08]">
+                                    Color:
+                                    <span
+                                      className="h-3 w-3 rounded-full border border-white/20 inline-block"
+                                      style={{ backgroundColor: item.colorCode || item.selectedColor }}
+                                    />
+                                    <strong className="text-white">{item.selectedColor}</strong>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between mt-3">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() =>
+                                    updateQuantity(
+                                      prodId,
+                                      item.quantity - 1,
+                                      item.selectedSize,
+                                      item.selectedColor,
+                                      item.variantId
+                                    )
+                                  }
+                                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/50 hover:border-white/30 hover:text-white transition-colors"
+                                >
+                                  <Minus size={12} />
+                                </button>
+                                <span className="w-8 text-center text-sm font-medium text-white">{item.quantity}</span>
+                                <button
+                                  onClick={() =>
+                                    updateQuantity(
+                                      prodId,
+                                      item.quantity + 1,
+                                      item.selectedSize,
+                                      item.selectedColor,
+                                      item.variantId
+                                    )
+                                  }
+                                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/50 hover:border-white/30 hover:text-white transition-colors"
+                                >
+                                  <Plus size={12} />
+                                </button>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <span className="text-sm font-bold text-white">${(unitPrice * item.quantity).toFixed(2)}</span>
+                                <button
+                                  onClick={() =>
+                                    handleRemoveItem(
+                                      prodId,
+                                      item.product.name,
+                                      item.selectedSize,
+                                      item.selectedColor,
+                                      item.variantId
+                                    )
+                                  }
+                                  className="text-white/20 hover:text-red-400 transition-colors"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex items-center justify-between mt-3">
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() =>
-                                  updateQuantity(
-                                    item.product.id,
-                                    item.quantity - 1,
-                                    item.selectedSize,
-                                    item.selectedColor
-                                  )
-                                }
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/50 hover:border-white/30 hover:text-white transition-colors"
-                              >
-                                <Minus size={12} />
-                              </button>
-                              <span className="w-8 text-center text-sm font-medium text-white">{item.quantity}</span>
-                              <button
-                                onClick={() =>
-                                  updateQuantity(
-                                    item.product.id,
-                                    item.quantity + 1,
-                                    item.selectedSize,
-                                    item.selectedColor
-                                  )
-                                }
-                                className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 text-white/50 hover:border-white/30 hover:text-white transition-colors"
-                              >
-                                <Plus size={12} />
-                              </button>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <span className="text-sm font-bold text-white">${item.product.price * item.quantity}</span>
-                              <button
-                                onClick={() =>
-                                  handleRemoveItem(
-                                    item.product.id,
-                                    item.product.name,
-                                    item.selectedSize,
-                                    item.selectedColor
-                                  )
-                                }
-                                className="text-white/20 hover:text-red-400 transition-colors"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                        </motion.div>
+                      );
+                    })}
                   </AnimatePresence>
                 </div>
               </div>

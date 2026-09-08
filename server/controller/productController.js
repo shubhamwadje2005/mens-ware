@@ -1,12 +1,35 @@
 const Product = require("../modal/Product");
 
+// Helper to generate a clean slug
+const generateSlug = (name) => {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+};
+
 exports.getAllProducts = async (req, res) => {
   try {
-    const { category, search, sort, minPrice, maxPrice } = req.query;
+    const { category, subcategory, brand, gender, status, search, sort, minPrice, maxPrice } = req.query;
     let query = { isDeleted: { $ne: true } };
 
     if (category && category !== "All") query.category = category;
-    if (search) query.name = { $regex: search, $options: "i" };
+    if (subcategory) query.subcategory = subcategory;
+    if (brand) query.brand = brand;
+    if (gender) query.gender = gender;
+    if (status) query.status = status;
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { brand: { $regex: search, $options: "i" } },
+        { category: { $regex: search, $options: "i" } },
+        { sku: { $regex: search, $options: "i" } },
+        { tags: { $in: [new RegExp(search, "i")] } },
+      ];
+    }
+
     if (minPrice || maxPrice) {
       query.price = {};
       if (minPrice) query.price.$gte = Number(minPrice);
@@ -29,7 +52,7 @@ exports.getAllProducts = async (req, res) => {
 
 exports.getProductBySlug = async (req, res) => {
   try {
-    const product = await Product.findOne({ slug: req.params.slug });
+    const product = await Product.findOne({ slug: req.params.slug, isDeleted: { $ne: true } });
     if (!product) return res.status(404).json({ message: "Product not found" });
     res.json(product);
   } catch (err) {
@@ -50,20 +73,89 @@ exports.getProductById = async (req, res) => {
 exports.createProduct = async (req, res) => {
   try {
     const data = { ...req.body };
-    if (!data.slug && data.name) {
-      data.slug = data.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-    }
-    if (!data.badge || data.badge === "") {
-      delete data.badge;
+
+    // Validation
+    if (!data.name || !data.category || data.price === undefined || !data.image) {
+      return res.status(400).json({
+        message: "Product name, category, price, and primary image are required.",
+      });
     }
 
-    let baseSlug = data.slug || "product";
+    // Number conversions
+    data.price = Number(data.price);
+    if (isNaN(data.price) || data.price < 0) {
+      return res.status(400).json({ message: "Price must be a valid positive number." });
+    }
+    if (data.originalPrice) {
+      data.originalPrice = Number(data.originalPrice);
+    }
+
+    // Generate unique slug
+    let baseSlug = data.slug ? generateSlug(data.slug) : generateSlug(data.name);
+    if (!baseSlug) baseSlug = "product";
     let uniqueSlug = baseSlug;
     let count = 1;
     while (await Product.findOne({ slug: uniqueSlug })) {
       uniqueSlug = `${baseSlug}-${count++}`;
     }
     data.slug = uniqueSlug;
+
+    // Sanitize badge
+    if (!data.badge || data.badge === "") {
+      delete data.badge;
+    }
+
+    // Process and validate variants
+    if (Array.isArray(data.variants) && data.variants.length > 0) {
+      const variantSet = new Set();
+      let totalStock = 0;
+
+      for (let i = 0; i < data.variants.length; i++) {
+        const v = data.variants[i];
+        if (!v.color || !v.size) {
+          return res.status(400).json({
+            message: `Variant at row ${i + 1} must have both color and size specified.`,
+          });
+        }
+
+        const comboKey = `${v.color.toLowerCase().trim()}_${v.size.toLowerCase().trim()}`;
+        if (variantSet.has(comboKey)) {
+          return res.status(400).json({
+            message: `Duplicate variant combination found: ${v.color} - ${v.size}. Each color and size combination must be unique.`,
+          });
+        }
+        variantSet.add(comboKey);
+
+        v.sellingPrice = Number(v.sellingPrice !== undefined ? v.sellingPrice : data.price);
+        v.mrp = Number(v.mrp !== undefined ? v.mrp : data.originalPrice || data.price);
+        v.stock = Number(v.stock !== undefined ? v.stock : 0);
+
+        if (v.mrp && v.mrp > v.sellingPrice) {
+          v.discount = Math.round(((v.mrp - v.sellingPrice) / v.mrp) * 100);
+        } else {
+          v.discount = 0;
+        }
+
+        totalStock += v.stock;
+      }
+
+      data.stock = totalStock;
+
+      // Sync colors and sizes arrays for backwards compatibility
+      if (!data.colors || data.colors.length === 0) {
+        data.colors = Array.from(new Set(data.variants.map((v) => v.color)));
+      }
+      if (!data.sizes || data.sizes.length === 0) {
+        data.sizes = Array.from(new Set(data.variants.map((v) => v.size)));
+      }
+    }
+
+    // Sync colorOptions with colors list
+    if (Array.isArray(data.colorOptions) && data.colorOptions.length > 0) {
+      if (!data.colors || data.colors.length === 0) {
+        data.colors = data.colorOptions.map((c) => c.name);
+      }
+    }
 
     const product = new Product(data);
     await product.save();
@@ -76,9 +168,59 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     const data = { ...req.body };
+
     if (!data.badge || data.badge === "") {
-      delete data.badge;
+      data.badge = null;
     }
+
+    if (data.price !== undefined) {
+      data.price = Number(data.price);
+    }
+    if (data.originalPrice !== undefined && data.originalPrice !== "") {
+      data.originalPrice = Number(data.originalPrice);
+    }
+
+    // Process and validate variants if updated
+    if (Array.isArray(data.variants)) {
+      const variantSet = new Set();
+      let totalStock = 0;
+
+      for (let i = 0; i < data.variants.length; i++) {
+        const v = data.variants[i];
+        if (!v.color || !v.size) {
+          return res.status(400).json({
+            message: `Variant at row ${i + 1} must have both color and size specified.`,
+          });
+        }
+
+        const comboKey = `${v.color.toLowerCase().trim()}_${v.size.toLowerCase().trim()}`;
+        if (variantSet.has(comboKey)) {
+          return res.status(400).json({
+            message: `Duplicate variant combination found: ${v.color} - ${v.size}.`,
+          });
+        }
+        variantSet.add(comboKey);
+
+        v.sellingPrice = Number(v.sellingPrice !== undefined ? v.sellingPrice : data.price);
+        v.mrp = Number(v.mrp !== undefined ? v.mrp : data.originalPrice || data.price);
+        v.stock = Number(v.stock !== undefined ? v.stock : 0);
+
+        if (v.mrp && v.mrp > v.sellingPrice) {
+          v.discount = Math.round(((v.mrp - v.sellingPrice) / v.mrp) * 100);
+        } else {
+          v.discount = 0;
+        }
+
+        totalStock += v.stock;
+      }
+
+      data.stock = totalStock;
+
+      // Sync colors and sizes arrays
+      data.colors = Array.from(new Set(data.variants.map((v) => v.color)));
+      data.sizes = Array.from(new Set(data.variants.map((v) => v.size)));
+    }
+
     const product = await Product.findByIdAndUpdate(req.params.id, data, {
       new: true,
       runValidators: true,
@@ -153,7 +295,7 @@ exports.toggleAvailability = async (req, res) => {
 
 exports.getCategories = async (req, res) => {
   try {
-    const categories = await Product.distinct("category", { isActive: true });
+    const categories = await Product.distinct("category", { isActive: true, isDeleted: { $ne: true } });
     res.json(categories);
   } catch (err) {
     res.status(500).json({ message: err.message });

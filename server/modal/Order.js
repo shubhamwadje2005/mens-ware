@@ -2,12 +2,15 @@ const mongoose = require("mongoose");
 
 const orderItemSchema = new mongoose.Schema({
   product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+  variantId: { type: String },
   name: { type: String },
   image: { type: String },
   slug: { type: String },
+  sku: { type: String },
   quantity: { type: Number, required: true, min: 1 },
   selectedSize: { type: String },
   selectedColor: { type: String },
+  colorCode: { type: String },
   price: { type: Number, required: true },
 });
 

@@ -144,10 +144,17 @@ export default function CheckoutPage() {
     try {
       setIsSubmittingOrder(true);
       const apiItems = items.map((item) => ({
-        product: item.product._id || item.product.id,
+        product: item.product._id || item.product.id || "",
+        variantId: item.variantId,
+        name: item.product.name,
+        image: item.image || item.product.image,
+        slug: item.product.slug,
+        sku: item.sku,
         quantity: item.quantity,
         selectedSize: item.selectedSize,
         selectedColor: item.selectedColor,
+        colorCode: item.colorCode,
+        price: item.price !== undefined ? item.price : item.product.price,
       }));
 
       const res = await createOrderApi({

@@ -38,9 +38,9 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   }, [items, mounted]);
 
   const addItem = useCallback((product: Product) => {
-    const productId = product._id || product.id;
+    const productId = product._id || product.id || product.slug || "";
     setItems((prev) => {
-      if (prev.some((item) => (item.product._id || item.product.id) === productId)) {
+      if (prev.some((item) => (item.product._id || item.product.id || item.product.slug) === productId)) {
         return prev;
       }
       return [...prev, { product, addedAt: new Date().toISOString() }];
@@ -48,13 +48,15 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const removeItem = useCallback((productId: string) => {
-    setItems((prev) => prev.filter((item) => (item.product._id || item.product.id) !== productId));
+    setItems((prev) =>
+      prev.filter((item) => (item.product._id || item.product.id || item.product.slug) !== productId)
+    );
   }, []);
 
   const toggleItem = useCallback(
     (product: Product) => {
-      const productId = product._id || product.id;
-      if (items.some((item) => (item.product._id || item.product.id) === productId)) {
+      const productId = product._id || product.id || product.slug || "";
+      if (items.some((item) => (item.product._id || item.product.id || item.product.slug) === productId)) {
         removeItem(productId);
       } else {
         addItem(product);
@@ -65,7 +67,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
 
   const isInWishlist = useCallback(
     (productId: string) => {
-      return items.some((item) => (item.product._id || item.product.id) === productId);
+      return items.some((item) => (item.product._id || item.product.id || item.product.slug) === productId);
     },
     [items]
   );

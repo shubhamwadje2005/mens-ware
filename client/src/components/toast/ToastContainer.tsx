@@ -8,36 +8,38 @@ export default function ToastContainer() {
   const { toasts, removeToast } = useToast();
 
   const icons = {
-    success: <CheckCircle size={16} className="text-green-400" />,
-    error: <AlertCircle size={16} className="text-red-400" />,
-    info: <Info size={16} className="text-blue-400" />,
+    success: <CheckCircle size={18} className="text-emerald-400 shrink-0" />,
+    error: <AlertCircle size={18} className="text-red-400 shrink-0" />,
+    info: <Info size={18} className="text-blue-400 shrink-0" />,
   };
 
   const borders = {
-    success: "border-green-400/30",
-    error: "border-red-400/30",
-    info: "border-blue-400/30",
+    success: "border-emerald-500/30 bg-emerald-950/40 shadow-[0_10px_30px_rgba(16,185,129,0.15)]",
+    error: "border-red-500/30 bg-red-950/40 shadow-[0_10px_30px_rgba(239,68,68,0.15)]",
+    info: "border-blue-500/30 bg-blue-950/40 shadow-[0_10px_30px_rgba(59,130,246,0.15)]",
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3">
+    <div className="fixed top-6 right-4 sm:top-8 sm:right-8 z-[9999] flex flex-col gap-3 max-w-md pointer-events-none">
       <AnimatePresence>
         {toasts.map((toast) => (
           <motion.div
             key={toast.id}
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: -25, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 100, scale: 0.95 }}
-            transition={{ duration: 0.3 }}
-            className={`flex items-center gap-3 rounded-xl border ${borders[toast.type]} bg-[#111] px-4 py-3 shadow-[0_10px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl`}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className={`pointer-events-auto flex items-center gap-3 rounded-2xl border ${borders[toast.type]} bg-[#111111]/90 px-4 py-3.5 backdrop-blur-xl shadow-2xl`}
           >
             {icons[toast.type]}
-            <span className="text-sm text-white/90">{toast.message}</span>
+            <span className="text-xs sm:text-sm font-medium text-white/90 leading-snug">
+              {toast.message}
+            </span>
             <button
               onClick={() => removeToast(toast.id)}
-              className="ml-2 text-white/40 hover:text-white transition-colors"
+              className="ml-auto p-1 text-white/40 hover:text-white transition-colors cursor-pointer"
             >
-              <X size={14} />
+              <X size={15} />
             </button>
           </motion.div>
         ))}

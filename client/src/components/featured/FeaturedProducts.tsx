@@ -11,10 +11,12 @@ import Link from "next/link";
 
 gsap.registerPlugin(ScrollTrigger);
 
+import { PackageOpen, Loader2 } from "lucide-react";
+
 export default function FeaturedProducts() {
   const ref = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLDivElement>(null);
-  const { data: allProducts = [] } = useGetProductsQuery();
+  const { data: allProducts = [], isLoading } = useGetProductsQuery();
 
   useEffect(() => {
     if (!ref.current || !headingRef.current) return;
@@ -78,38 +80,63 @@ export default function FeaturedProducts() {
           </p>
         </div>
 
-        {/* Products Grid */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-          {featured.map((product, index) => (
-            <ProductCard key={product._id || product.id} product={product} index={index} />
-          ))}
-        </div>
+        {/* Loading Spinner */}
+        {isLoading ? (
+          <div className="flex h-[35vh] items-center justify-center">
+            <Loader2 size={36} className="animate-spin text-[#ff6b00]" />
+          </div>
+        ) : featured.length > 0 ? (
+          <>
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
+              {featured.map((product, index) => (
+                <ProductCard key={product._id || product.id} product={product} index={index} />
+              ))}
+            </div>
 
-        {/* View All */}
-        <motion.div
-          className="mt-12 text-center sm:mt-16"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-        >
-          <Link href="/shop" className="btn-pill btn-pill-dark inline-flex items-center justify-center gap-2">
-            View All Products
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="transition-transform duration-300 group-hover:translate-x-1"
+            {/* View All */}
+            <motion.div
+              className="mt-12 text-center sm:mt-16"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
             >
-              <path d="M5 12h14" />
-              <path d="m12 5 7 7-7 7" />
-            </svg>
-          </Link>
-        </motion.div>
+              <Link href="/shop" className="btn-pill btn-pill-dark inline-flex items-center justify-center gap-2">
+                View All Products
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className="transition-transform duration-300 group-hover:translate-x-1"
+                >
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
+              </Link>
+            </motion.div>
+          </>
+        ) : (
+          <div className="rounded-2xl border border-white/[0.08] bg-[#0c0c0c]/70 p-10 sm:p-16 text-center backdrop-blur-sm">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/[0.04] border border-white/[0.08] text-[#ff6b00]">
+              <PackageOpen size={28} />
+            </div>
+            <h3 className="text-xl font-light text-white mb-2 sm:text-2xl">
+              New Collection Coming Soon
+            </h3>
+            <p className="mx-auto max-w-md text-xs sm:text-sm text-white/40 mb-6 leading-relaxed">
+              Our curated seasonal collection is currently being updated. Please check back soon for our latest releases.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Link href="/shop" className="btn-pill btn-pill-gold text-xs">
+                Explore Shop
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

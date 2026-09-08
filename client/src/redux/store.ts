@@ -7,6 +7,8 @@ import { userApi } from "./api/user.api";
 import { paymentApi } from "./api/payment.api";
 import { campaignApi } from "./api/campaign.api";
 import { collectionApi } from "./api/collection.api";
+import { aboutApi } from "./api/about.api";
+import { messageApi } from "./api/message.api";
 import authReducer from "./slice/auth.slice";
 
 export const makeStore = () =>
@@ -19,6 +21,8 @@ export const makeStore = () =>
       [paymentApi.reducerPath]: paymentApi.reducer,
       [campaignApi.reducerPath]: campaignApi.reducer,
       [collectionApi.reducerPath]: collectionApi.reducer,
+      [aboutApi.reducerPath]: aboutApi.reducer,
+      [messageApi.reducerPath]: messageApi.reducer,
       auth: authReducer,
     },
     middleware: (getDefaultMiddleware) =>
@@ -29,7 +33,9 @@ export const makeStore = () =>
         userApi.middleware,
         paymentApi.middleware,
         campaignApi.middleware,
-        collectionApi.middleware
+        collectionApi.middleware,
+        aboutApi.middleware,
+        messageApi.middleware
       ),
   });
 

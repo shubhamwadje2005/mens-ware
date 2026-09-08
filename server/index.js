@@ -11,6 +11,8 @@ const authRoutes = require("./routes/authRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const campaignRoutes = require("./routes/campaignRoutes");
 const collectionRoutes = require("./routes/collectionRoutes");
+const aboutRoutes = require("./routes/aboutRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 
 const app = express();
 
@@ -54,6 +56,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/campaign", campaignRoutes);
 app.use("/api/collections", collectionRoutes);
+app.use("/api/about", aboutRoutes);
+app.use("/api/messages", messageRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Mens Wear API running" });

@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
-import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
 
 const SmoothScrollProvider = dynamic(() => import("@/components/layout/SmoothScrollProvider"), { ssr: false });
 const CursorFollower = dynamic(() => import("@/components/cursor/CursorFollower"), { ssr: false });
@@ -36,12 +36,12 @@ function AuthForm() {
 
     try {
       if (isLogin) {
-        const result = await login(form.email, form.password);
-        if (result.success) {
-          addToast("Welcome back!");
+        const success = await login(form.email, form.password);
+        if (success) {
+          addToast("Welcome back!", "success");
           router.push(redirect);
         } else {
-          addToast(result.error || "Login failed", "error");
+          addToast("Invalid credentials", "error");
         }
       } else {
         if (!form.name.trim()) {
@@ -49,104 +49,130 @@ function AuthForm() {
           setLoading(false);
           return;
         }
-        const result = await register(form.name, form.email, form.password);
-        if (result.success) {
-          addToast("Account created! Welcome to NOIR--STUDIO");
+        const success = await register(form.name, form.email, form.password);
+        if (success) {
+          addToast("Account created successfully!", "success");
           router.push(redirect);
         } else {
-          addToast(result.error || "Registration failed", "error");
+          addToast("Registration failed", "error");
         }
       }
+    } catch {
+      addToast("Something went wrong", "error");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen bg-black pt-32 pb-20 flex items-center justify-center">
-      <div className="w-full max-w-md px-5">
+    <main className="min-h-screen bg-black pt-24 pb-16 sm:pt-32">
+      <div className="mx-auto max-w-md px-5 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          className="rounded-2xl border border-white/[0.08] bg-[#0c0c0c] p-6 sm:p-8"
         >
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-light uppercase tracking-[0.2em] text-white mb-2">
-              NOIR<span className="text-[#ff6b00]">&mdash;</span>STUDIO
-            </h1>
-            <p className="text-xs text-white/30">
-              {isLogin ? "Sign in to your account" : "Create your account"}
-            </p>
+          {/* Tabs */}
+          <div className="mb-8 flex rounded-full bg-white/5 p-1">
+            <button
+              onClick={() => setIsLogin(true)}
+              className={`flex-1 rounded-full py-2 text-xs font-semibold uppercase tracking-wider transition-all ${
+                isLogin ? "bg-[#ff6b00] text-black" : "text-white/50 hover:text-white"
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => setIsLogin(false)}
+              className={`flex-1 rounded-full py-2 text-xs font-semibold uppercase tracking-wider transition-all ${
+                !isLogin ? "bg-[#ff6b00] text-black" : "text-white/50 hover:text-white"
+              }`}
+            >
+              Register
+            </button>
           </div>
+
+          <h1 className="mb-2 text-2xl font-light text-white">
+            {isLogin ? "Welcome Back" : "Create Account"}
+          </h1>
+          <p className="mb-6 text-xs text-white/40">
+            {isLogin
+              ? "Sign in to access your account and orders."
+              : "Create an account to track orders and save your wishlist."}
+          </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
-              <div className="relative">
-                <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
-                <input
-                  type="text"
-                  placeholder="Full Name"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full rounded-xl border border-white/10 bg-white/5 py-3.5 pl-11 pr-4 text-sm text-white outline-none focus:border-[#ff6b00]/50 transition-colors placeholder:text-white/20"
-                />
+              <div>
+                <label className="mb-1 block text-xs text-white/50">Full Name</label>
+                <div className="relative">
+                  <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="John Doe"
+                    required={!isLogin}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-10 pr-4 text-xs text-white placeholder:text-white/20 outline-none focus:border-[#ff6b00]"
+                  />
+                </div>
               </div>
             )}
 
-            <div className="relative">
-              <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
-              <input
-                type="email"
-                placeholder="Email Address"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                required
-                className="w-full rounded-xl border border-white/10 bg-white/5 py-3.5 pl-11 pr-4 text-sm text-white outline-none focus:border-[#ff6b00]/50 transition-colors placeholder:text-white/20"
-              />
+            <div>
+              <label className="mb-1 block text-xs text-white/50">Email Address</label>
+              <div className="relative">
+                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="name@example.com"
+                  required
+                  className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-10 pr-4 text-xs text-white placeholder:text-white/20 outline-none focus:border-[#ff6b00]"
+                />
+              </div>
             </div>
 
-            <div className="relative">
-              <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required
-                minLength={6}
-                className="w-full rounded-xl border border-white/10 bg-white/5 py-3.5 pl-11 pr-11 text-sm text-white outline-none focus:border-[#ff6b00]/50 transition-colors placeholder:text-white/20"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+            <div>
+              <label className="mb-1 block text-xs text-white/50">Password</label>
+              <div className="relative">
+                <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30" />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  placeholder="••••••••"
+                  required
+                  className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-10 pr-10 text-xs text-white placeholder:text-white/20 outline-none focus:border-[#ff6b00]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-full bg-[#ff6b00] py-4 text-xs font-bold tracking-[0.15em] text-black uppercase transition-all hover:bg-[#ff7a1a] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-pill btn-pill-gold w-full mt-2 cursor-pointer disabled:opacity-50"
             >
               {loading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-white/30">
-            {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-[#ff6b00] hover:text-[#ff7a1a] transition-colors"
-            >
-              {isLogin ? "Sign Up" : "Sign In"}
-            </button>
-          </p>
-
-          {isLogin && (
-            <div className="mt-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30 mb-2">Demo</p>
+          {isLogin ? (
+            <div className="mt-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-center">
+              <p className="text-xs text-white/40">
+                Demo: Sign in with any email and password.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-center">
               <p className="text-xs text-white/40">
                 Register a new account to get started. All data is saved in your browser.
               </p>
@@ -166,7 +192,7 @@ export default function AuthPage() {
       <ToastContainer />
       <Suspense fallback={
         <main className="min-h-screen bg-black pt-32 pb-20 flex items-center justify-center">
-          <div className="text-white/40">Loading...</div>
+          <Loader2 size={36} className="animate-spin text-[#ff6b00]" />
         </main>
       }>
         <AuthForm />

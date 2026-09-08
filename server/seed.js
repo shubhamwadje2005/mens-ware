@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 const Product = require("./modal/Product");
+const About = require("./modal/About");
+const Campaign = require("./modal/Campaign");
 require("dotenv").config();
 
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/menswear";
@@ -152,6 +154,55 @@ const products = [
   },
 ];
 
+const defaultAbout = {
+  heroTitle: "Our Story",
+  heroSubtitle:
+    "Born from a belief that clothing should be an extension of one's identity, not a costume.",
+  heroImage:
+    "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=1920&h=1080&fit=crop",
+  stats: [
+    { value: "50K+", label: "Happy Customers" },
+    { value: "200+", label: "Premium Products" },
+    { value: "30+", label: "Countries Served" },
+    { value: "99%", label: "Satisfaction Rate" },
+  ],
+  storyBadge: "The Beginning",
+  storyHeading: "Redefining Modern Luxury",
+  storyParagraphs: [
+    "NOIR—STUDIO was founded on a singular conviction: that true luxury is not about logos or labels, but about the quiet confidence that comes from wearing something exquisitely made.",
+    "We draw inspiration from the intersection of architecture, art, and the human form. Each piece in our collection is designed to move with you, adapt to you, and ultimately become a part of you.",
+    "Our commitment extends beyond aesthetics. We work exclusively with mills and workshops that share our values — where artisanal craftsmanship meets progressive sustainability practices.",
+  ],
+  storyImage:
+    "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800&h=1000&fit=crop",
+  storyEstYear: "Est. 2020",
+  storyLocation: "London, United Kingdom",
+  valuesHeading: "What We Stand For",
+  values: [
+    {
+      title: "Craftsmanship",
+      description: "Every stitch, every seam, every detail is meticulously considered and expertly executed.",
+      icon: "✦",
+    },
+    {
+      title: "Sustainability",
+      description: "We believe luxury and responsibility can coexist. Our materials are ethically sourced.",
+      icon: "◈",
+    },
+    {
+      title: "Innovation",
+      description: "Pushing boundaries while respecting tradition. We evolve without compromising our essence.",
+      icon: "⬡",
+    },
+    {
+      title: "Community",
+      description: "More than a brand — a collective of individuals who share a vision for elevated living.",
+      icon: "△",
+    },
+  ],
+  isActive: true,
+};
+
 async function seed() {
   try {
     await mongoose.connect(MONGO_URI);
@@ -162,6 +213,14 @@ async function seed() {
 
     await Product.insertMany(products);
     console.log(`Seeded ${products.length} products`);
+
+    const aboutCount = await About.countDocuments();
+    if (aboutCount === 0) {
+      await About.create(defaultAbout);
+      console.log("Seeded default About page content");
+    } else {
+      console.log("About page content already exists");
+    }
 
     process.exit(0);
   } catch (err) {

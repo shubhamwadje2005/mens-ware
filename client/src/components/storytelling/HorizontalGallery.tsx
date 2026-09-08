@@ -9,42 +9,17 @@ import { useGetProductsQuery } from "@/redux/api/product.api";
 
 gsap.registerPlugin(ScrollTrigger);
 
-export default function HorizontalGallery() {
+interface GalleryItem {
+  id: string;
+  image: string;
+  title: string;
+  price: string;
+  slug: string;
+}
+
+function HorizontalGalleryTrack({ items }: { items: GalleryItem[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { data: dbProducts = [] } = useGetProductsQuery();
-
-  const galleryItems = dbProducts.length > 0
-    ? dbProducts.map((p) => ({
-        id: p._id || p.id,
-        image: p.image,
-        title: p.name,
-        price: `$${p.price}`,
-        slug: p.slug,
-      }))
-    : [
-        {
-          id: "1",
-          image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=800&fit=crop",
-          title: "Essential Noir Tee",
-          price: "$89",
-          slug: "midnight-oversized-tee",
-        },
-        {
-          id: "2",
-          image: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600&h=800&fit=crop",
-          title: "Silk Blend Shirt",
-          price: "$245",
-          slug: "noir-silk-shirt",
-        },
-        {
-          id: "3",
-          image: "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=600&h=800&fit=crop",
-          title: "Stealth Bomber",
-          price: "$389",
-          slug: "stealth-bomber",
-        },
-      ];
 
   useEffect(() => {
     if (!containerRef.current || !scrollRef.current) return;
@@ -56,7 +31,6 @@ export default function HorizontalGallery() {
       if (!containerRef.current || !scrollRef.current) return;
       if (window.innerWidth < 768) return;
 
-      // Clean up existing trigger if any
       if (st) st.kill();
       if (tween) tween.kill();
 
@@ -86,7 +60,6 @@ export default function HorizontalGallery() {
 
     setupScroll();
 
-    // ResizeObserver to automatically adjust whenever cards or images load & resize
     const resizeObserver = new ResizeObserver(() => {
       setupScroll();
     });
@@ -103,7 +76,7 @@ export default function HorizontalGallery() {
       if (st) st.kill();
       if (tween) tween.kill();
     };
-  }, [dbProducts]);
+  }, [items]);
 
   return (
     <section
@@ -143,7 +116,7 @@ export default function HorizontalGallery() {
         className="flex items-center gap-5 overflow-x-auto px-6 pr-32 scrollbar-none md:overflow-x-visible sm:gap-6 sm:px-8 sm:pr-48 md:px-10"
         style={{ width: "fit-content" }}
       >
-        {galleryItems.map((item, index) => (
+        {items.map((item, index) => (
           <motion.div
             key={item.id || index}
             className="group relative w-[230px] shrink-0 sm:w-[270px] md:w-[310px] lg:w-[330px]"
@@ -179,4 +152,22 @@ export default function HorizontalGallery() {
       <div className="h-1" />
     </section>
   );
+}
+
+export default function HorizontalGallery() {
+  const { data: dbProducts = [] } = useGetProductsQuery();
+
+  if (dbProducts.length === 0) {
+    return null;
+  }
+
+  const galleryItems = dbProducts.map((p) => ({
+    id: p._id || p.id,
+    image: p.image,
+    title: p.name,
+    price: `$${p.price}`,
+    slug: p.slug,
+  }));
+
+  return <HorizontalGalleryTrack items={galleryItems} />;
 }

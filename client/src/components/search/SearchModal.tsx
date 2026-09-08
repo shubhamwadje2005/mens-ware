@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, ArrowRight } from "lucide-react";
 import { useSearch } from "@/context/SearchContext";
 import { useGetProductsQuery } from "@/redux/api/product.api";
-import { Product } from "@/types";
 import Link from "next/link";
 
 export default function SearchModal() {
   const { isOpen, closeSearch } = useSearch();
   const { data: dbProducts = [] } = useGetProductsQuery();
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Product[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -20,23 +18,20 @@ export default function SearchModal() {
       setTimeout(() => inputRef.current?.focus(), 100);
     } else {
       setQuery("");
-      setResults([]);
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    if (query.trim().length === 0) {
-      setResults([]);
-      return;
+  const results = useMemo(() => {
+    const trimmed = query.trim().toLowerCase();
+    if (!trimmed || !dbProducts || dbProducts.length === 0) {
+      return [];
     }
-    const q = query.toLowerCase();
-    const filtered = dbProducts.filter(
+    return dbProducts.filter(
       (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q) ||
-        p.slug.toLowerCase().includes(q)
+        p.name?.toLowerCase().includes(trimmed) ||
+        p.category?.toLowerCase().includes(trimmed) ||
+        p.slug?.toLowerCase().includes(trimmed)
     );
-    setResults(filtered);
   }, [query, dbProducts]);
 
   useEffect(() => {

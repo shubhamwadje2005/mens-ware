@@ -96,22 +96,18 @@ export default function AdminDashboard() {
         {/* Quick Actions */}
         <div className="rounded-2xl border border-black/10 dark:border-white/[0.06] bg-white dark:bg-[#0c0c0c] p-6 shadow-xs flex flex-col justify-between">
           <h3 className="text-base font-bold text-neutral-900 dark:text-white mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 gap-3 flex-1">
-            <Link href="/admin/products" className="flex flex-col items-center justify-center gap-2 rounded-xl border border-black/10 dark:border-white/[0.06] p-3.5 hover:border-[#ff6b00]/40 hover:bg-[#ff6b00]/5 transition-all">
-              <Package size={18} className="text-[#ff6b00]" />
+          <div className="grid grid-cols-3 gap-2.5 flex-1">
+            <Link href="/admin/products" className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-black/10 dark:border-white/[0.06] p-3 hover:border-[#ff6b00]/40 hover:bg-[#ff6b00]/5 transition-all">
+              <Package size={16} className="text-[#ff6b00]" />
               <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-700 dark:text-white/70 text-center">Products</span>
             </Link>
-            <Link href="/admin/orders" className="flex flex-col items-center justify-center gap-2 rounded-xl border border-black/10 dark:border-white/[0.06] p-3.5 hover:border-[#ff6b00]/40 hover:bg-[#ff6b00]/5 transition-all">
-              <ShoppingCart size={18} className="text-[#ff6b00]" />
+            <Link href="/admin/orders" className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-black/10 dark:border-white/[0.06] p-3 hover:border-[#ff6b00]/40 hover:bg-[#ff6b00]/5 transition-all">
+              <ShoppingCart size={16} className="text-[#ff6b00]" />
               <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-700 dark:text-white/70 text-center">Orders</span>
             </Link>
-            <Link href="/admin/collections" className="flex flex-col items-center justify-center gap-2 rounded-xl border border-black/10 dark:border-white/[0.06] p-3.5 hover:border-[#ff6b00]/40 hover:bg-[#ff6b00]/5 transition-all">
-              <Package size={18} className="text-[#ff6b00]" />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-700 dark:text-white/70 text-center">Collections</span>
-            </Link>
-            <Link href="/admin/customers" className="flex flex-col items-center justify-center gap-2 rounded-xl border border-black/10 dark:border-white/[0.06] p-3.5 hover:border-[#ff6b00]/40 hover:bg-[#ff6b00]/5 transition-all">
-              <Users size={18} className="text-[#ff6b00]" />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-700 dark:text-white/70 text-center">Customers</span>
+            <Link href="/admin/messages" className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-black/10 dark:border-white/[0.06] p-3 hover:border-[#ff6b00]/40 hover:bg-[#ff6b00]/5 transition-all">
+              <Eye size={16} className="text-[#ff6b00]" />
+              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-700 dark:text-white/70 text-center">Messages</span>
             </Link>
           </div>
         </div>

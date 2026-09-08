@@ -6,7 +6,8 @@ import dynamic from "next/dynamic";
 import Navbar from "@/components/navbar/Navbar";
 import ProductCard from "@/components/ui/ProductCard";
 import { useGetProductsQuery } from "@/redux/api/product.api";
-import { Loader2 } from "lucide-react";
+import { Loader2, PackageOpen } from "lucide-react";
+import Link from "next/link";
 
 const SmoothScrollProvider = dynamic(
   () => import("@/components/layout/SmoothScrollProvider"),
@@ -59,8 +60,8 @@ export default function NewArrivalsPage() {
           </motion.div>
 
           {isLoading && (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 size={24} className="animate-spin text-[#ff6b00]" />
+            <div className="flex h-[55vh] items-center justify-center">
+              <Loader2 size={36} className="animate-spin text-[#ff6b00]" />
             </div>
           )}
 
@@ -107,8 +108,21 @@ export default function NewArrivalsPage() {
           )}
 
           {!isLoading && filteredProducts.length === 0 && (
-            <div className="py-20 text-center">
-              <p className="text-white/40 text-sm">No new arrivals yet. Check back soon.</p>
+            <div className="rounded-2xl border border-white/[0.08] bg-[#0c0c0c]/70 p-12 sm:p-16 text-center backdrop-blur-sm my-8">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/[0.04] border border-white/[0.08] text-[#ff6b00]">
+                <PackageOpen size={28} />
+              </div>
+              <h3 className="text-xl font-light text-white mb-2 sm:text-2xl">
+                No New Arrivals Yet
+              </h3>
+              <p className="mx-auto max-w-md text-xs sm:text-sm text-white/40 mb-6 leading-relaxed">
+                New season pieces will be dropping soon. Discover our complete collection in the meantime.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <Link href="/shop" className="btn-pill btn-pill-gold text-xs">
+                  Explore All Products
+                </Link>
+              </div>
             </div>
           )}
         </div>

@@ -120,6 +120,10 @@ export default function Categories() {
     image: info.image,
   }));
 
+  if (displayCategories.length === 0) {
+    return null;
+  }
+
   return (
     <section className="relative bg-[#040404] py-24 sm:py-32 lg:py-40">
       {/* Top divider */}

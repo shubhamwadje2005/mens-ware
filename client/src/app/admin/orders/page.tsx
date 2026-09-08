@@ -138,11 +138,11 @@ export default function AdminOrdersPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="appearance-none rounded-xl border border-white/10 bg-[#0c0c0c] px-4 py-3 pr-8 text-sm text-white/60 outline-none focus:border-[#ff6b00]/50 transition-colors cursor-pointer"
           >
-            <option value="all" className="bg-[#0a0a0a]">All Status</option>
-            <option value="pending" className="bg-[#0a0a0a]">Pending</option>
-            <option value="confirmed" className="bg-[#0a0a0a]">Confirmed</option>
-            <option value="shipped" className="bg-[#0a0a0a]">Shipped</option>
-            <option value="delivered" className="bg-[#0a0a0a]">Delivered</option>
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
           </select>
           <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
         </div>
@@ -279,10 +279,10 @@ export default function AdminOrdersPage() {
                                   onChange={(e) => updateStatus(orderIdStr, e.target.value)}
                                   className="appearance-none rounded-lg border border-white/10 bg-[#141414] px-2.5 py-1.5 pr-6 text-[10px] font-medium text-white outline-none focus:border-[#ff6b00]/50 cursor-pointer transition-colors"
                                 >
-                                  <option value="pending" className="bg-[#0a0a0a]">Pending</option>
-                                  <option value="confirmed" className="bg-[#0a0a0a]">Confirmed</option>
-                                  <option value="shipped" className="bg-[#0a0a0a]">Shipped</option>
-                                  <option value="delivered" className="bg-[#0a0a0a]">Delivered</option>
+                                  <option value="pending">Pending</option>
+                                  <option value="confirmed">Confirmed</option>
+                                  <option value="shipped">Shipped</option>
+                                  <option value="delivered">Delivered</option>
                                 </select>
                                 <ChevronDown size={10} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
                               </div>
@@ -367,10 +367,10 @@ export default function AdminOrdersPage() {
                       onChange={(e) => updateStatus(selectedOrder._id || selectedOrder.id, e.target.value)}
                       className="appearance-none rounded-lg border border-[#ff6b00]/30 bg-[#141414] px-3 py-1.5 pr-7 text-xs font-semibold text-[#ff6b00] outline-none focus:border-[#ff6b00] cursor-pointer"
                     >
-                      <option value="pending" className="bg-[#0a0a0a]">Pending</option>
-                      <option value="confirmed" className="bg-[#0a0a0a]">Confirmed</option>
-                      <option value="shipped" className="bg-[#0a0a0a]">Shipped</option>
-                      <option value="delivered" className="bg-[#0a0a0a]">Delivered</option>
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirmed</option>
+                      <option value="shipped">Shipped</option>
+                      <option value="delivered">Delivered</option>
                     </select>
                     <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-[#ff6b00] pointer-events-none" />
                   </div>

@@ -105,6 +105,27 @@ html.light,
   a {
     transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
+
+  /* Universal Select & Option Styles for Dark & Light Mode */
+  select {
+    color-scheme: dark;
+  }
+
+  select option {
+    background-color: #121212 !important;
+    color: #ffffff !important;
+  }
+
+  html.light select,
+  [data-theme="light"] select {
+    color-scheme: light;
+  }
+
+  html.light select option,
+  [data-theme="light"] select option {
+    background-color: #ffffff !important;
+    color: #121212 !important;
+  }
 }
 
 /* Component styles */
@@ -505,6 +526,11 @@ html.light {
     border-color: rgba(0, 0, 0, 0.14) !important;
   }
 
+  select option {
+    background-color: #ffffff !important;
+    color: #121212 !important;
+  }
+
   input::placeholder,
   textarea::placeholder {
     color: rgba(18, 18, 18, 0.42) !important;
@@ -638,6 +664,21 @@ html.light {
     border-color: rgba(0, 0, 0, 0.24) !important;
   }
 
+  /* Ensure hover border colors (orange/gold) work with high priority in Light Mode */
+  [class*="hover:border-[#ff6b00]"]:hover,
+  [class*="hover:border-orange"]:hover,
+  [class*="hover:border-amber"]:hover {
+    border-color: #ff6b00 !important;
+  }
+
+  [class*="hover:border-[#ff6b00]/"]:hover {
+    border-color: rgba(255, 107, 0, 0.6) !important;
+  }
+
+  [class*="hover:border-black"]:hover {
+    border-color: #000000 !important;
+  }
+
   /* Buttons text protection */
   .btn-pill-dark,
   .btn-pill-dark .text-white,
@@ -652,31 +693,31 @@ html.light {
   }
 
   /* =============================================
-     PROTECTED OVERLAYS (WHITE TEXT ON IMAGES/MEDIA)
+     PROTECTED OVERLAYS (WHITE & ACCENT TEXT ON IMAGES/MEDIA)
      ============================================= */
   .preserve-white .text-white,
-  .preserve-white h1,
-  .preserve-white h2,
-  .preserve-white h3,
+  .preserve-white h1:not([class*="text-[#"]):not([class*="text-orange"]):not(.gradient-text),
+  .preserve-white h2:not([class*="text-[#"]):not([class*="text-orange"]):not(.gradient-text),
+  .preserve-white h3:not([class*="text-[#"]):not([class*="text-orange"]):not(.gradient-text),
   .preserve-white h4,
   .preserve-white h5,
   .preserve-white h6,
   [data-overlay] .text-white,
-  [data-overlay] h1,
-  [data-overlay] h2,
-  [data-overlay] h3,
+  [data-overlay] h1:not([class*="text-[#"]):not([class*="text-orange"]):not(.gradient-text),
+  [data-overlay] h2:not([class*="text-[#"]):not([class*="text-orange"]):not(.gradient-text),
+  [data-overlay] h3:not([class*="text-[#"]):not([class*="text-orange"]):not(.gradient-text),
   .dark-overlay .text-white {
     color: #ffffff !important;
   }
 
-  .preserve-white p,
-  .preserve-white span,
+  .preserve-white p:not([class*="text-[#"]):not([class*="text-orange"]):not([class*="text-emerald"]):not([class*="text-red"]):not(.gradient-text),
+  .preserve-white span:not([class*="text-[#"]):not([class*="text-orange"]):not([class*="text-emerald"]):not([class*="text-red"]):not(.gradient-text),
   .preserve-white [class*="text-white/90"],
   .preserve-white [class*="text-white/80"],
   .preserve-white [class*="text-white/70"],
-  [data-overlay] p,
-  [data-overlay] span,
-  .dark-overlay p {
+  [data-overlay] p:not([class*="text-[#"]):not([class*="text-orange"]):not([class*="text-emerald"]):not([class*="text-red"]):not(.gradient-text),
+  [data-overlay] span:not([class*="text-[#"]):not([class*="text-orange"]):not([class*="text-emerald"]):not([class*="text-red"]):not(.gradient-text),
+  .dark-overlay p:not([class*="text-[#"]):not([class*="text-orange"]):not(.gradient-text) {
     color: rgba(255, 255, 255, 0.92) !important;
   }
 
@@ -695,6 +736,13 @@ html.light {
   .preserve-white [class*="text-white/20"],
   [data-overlay] [class*="text-white/30"] {
     color: rgba(255, 255, 255, 0.48) !important;
+  }
+
+  /* Explicitly guarantee orange text remains orange across light and dark modes */
+  [class*="text-[#ff6b00]"],
+  [class*="text-[#ffa048]"],
+  [class*="text-[#c2410c]"] {
+    color: #ff6b00 !important;
   }
 
   .preserve-white.bg-black,

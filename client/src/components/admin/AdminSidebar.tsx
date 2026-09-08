@@ -11,6 +11,8 @@ import {
   Users,
   Megaphone,
   Layers,
+  BookOpen,
+  MessageSquare,
   LogOut,
   ChevronLeft,
   Menu,
@@ -24,6 +26,8 @@ const sidebarLinks = [
   { label: "Collections", href: "/admin/collections", icon: Layers },
   { label: "Customers", href: "/admin/customers", icon: Users },
   { label: "Campaigns", href: "/admin/campaign", icon: Megaphone },
+  { label: "About Us", href: "/admin/about", icon: BookOpen },
+  { label: "Messages", href: "/admin/messages", icon: MessageSquare },
 ];
 
 export default function AdminSidebar() {

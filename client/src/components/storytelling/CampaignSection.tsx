@@ -4,12 +4,10 @@ import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import Link from "next/link";
 import ScrollReveal from "@/components/ui/ScrollReveal";
-import { useGetActiveCampaignQuery } from "@/redux/api/campaign.api";
+import { useGetActiveCampaignQuery, Campaign } from "@/redux/api/campaign.api";
 
-export default function CampaignSection() {
+function CampaignBanner({ campaign }: { campaign: Campaign }) {
   const ref = useRef<HTMLDivElement>(null);
-  const { data } = useGetActiveCampaignQuery();
-  const campaign = data?.campaign;
 
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -20,25 +18,18 @@ export default function CampaignSection() {
   const textY = useTransform(scrollYProgress, [0.2, 0.6], [80, -30]);
   const opacity = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0, 1, 1, 0]);
 
-  const subtitle = campaign?.subtitle || "Campaign 2026";
-  const titleLine1 = campaign?.titleLine1 || "BEYOND";
-  const titleLine2 = campaign?.titleLine2 || "Ordinary";
-  const description =
-    campaign?.description ||
-    "Where convention ends, creativity begins. Our latest campaign captures the essence of those who dare to stand apart.";
-  const image =
-    campaign?.image ||
-    "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=1920&h=1080&fit=crop";
-  const buttonText = campaign?.buttonText || "View Campaign";
-  const buttonLink = campaign?.buttonLink || "/collections";
+  const subtitle = campaign.subtitle;
+  const titleLine1 = campaign.titleLine1;
+  const titleLine2 = campaign.titleLine2;
+  const description = campaign.description;
+  const image = campaign.image;
+  const buttonText = campaign.buttonText || "View Campaign";
+  const buttonLink = campaign.buttonLink || "/collections";
 
   return (
     <section ref={ref} className="preserve-white relative h-screen overflow-hidden">
       {/* Background Image */}
-      <motion.div
-        className="absolute inset-0 z-0"
-        style={{ scale }}
-      >
+      <motion.div className="absolute inset-0 z-0" style={{ scale }}>
         <img
           src={image}
           alt={`${titleLine1} ${titleLine2} Background`}
@@ -89,4 +80,15 @@ export default function CampaignSection() {
       </motion.div>
     </section>
   );
+}
+
+export default function CampaignSection() {
+  const { data } = useGetActiveCampaignQuery();
+  const campaign = data?.campaign;
+
+  if (!campaign) {
+    return null;
+  }
+
+  return <CampaignBanner campaign={campaign} />;
 }

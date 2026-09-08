@@ -24,6 +24,11 @@ export default function WishlistPage() {
     const size = product.sizes?.[0];
     const color = product.colors?.[0] || product.colorOptions?.[0]?.name;
     const defaultVariant = product.variants?.[0];
+    const variantImg =
+      typeof defaultVariant?.images?.[0] === "string"
+        ? defaultVariant.images[0]
+        : defaultVariant?.images?.[0]?.url || product.image;
+
     addItem(
       product,
       size,
@@ -33,7 +38,7 @@ export default function WishlistPage() {
             variantId: defaultVariant._id,
             sku: defaultVariant.sku,
             price: defaultVariant.sellingPrice,
-            image: defaultVariant.images?.[0] || product.image,
+            image: variantImg,
             stock: defaultVariant.stock,
             colorCode: defaultVariant.colorCode,
           }

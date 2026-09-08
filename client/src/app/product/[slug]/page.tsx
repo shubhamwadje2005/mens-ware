@@ -122,12 +122,20 @@ export default function ProductPage() {
   const activeGallery: string[] = useMemo(() => {
     if (!product) return [];
 
+    const extractUrls = (arr?: any[]): string[] => {
+      if (!arr || !Array.isArray(arr)) return [];
+      return arr
+        .map((item) => (typeof item === "string" ? item : item?.url || ""))
+        .filter(Boolean);
+    };
+
     // 1. Check if active color has dedicated images in colorOptions
     const matchedColorOpt = product.colorOptions?.find(
       (c) => c.name.toLowerCase() === selectedColor.toLowerCase()
     );
-    if (matchedColorOpt && matchedColorOpt.images && matchedColorOpt.images.length > 0) {
-      return matchedColorOpt.images;
+    const colorImgs = extractUrls(matchedColorOpt?.images);
+    if (colorImgs.length > 0) {
+      return colorImgs;
     }
 
     // 2. Check if active color has images in variants
@@ -137,8 +145,9 @@ export default function ProductPage() {
         v.images &&
         v.images.length > 0
     );
-    if (matchedVariantWithImgs && matchedVariantWithImgs.images && matchedVariantWithImgs.images.length > 0) {
-      return matchedVariantWithImgs.images;
+    const varImgs = extractUrls(matchedVariantWithImgs?.images);
+    if (varImgs.length > 0) {
+      return varImgs;
     }
 
     // 3. Fallback to product images list or main image
@@ -146,7 +155,8 @@ export default function ProductPage() {
     if (product.image) imgs.push(product.image);
     if (product.images && product.images.length > 0) {
       product.images.forEach((img) => {
-        if (!imgs.includes(img)) imgs.push(img);
+        const u = typeof img === "string" ? img : img?.url;
+        if (u && !imgs.includes(u)) imgs.push(u);
       });
     }
     if (product.hoverImage && !imgs.includes(product.hoverImage)) {

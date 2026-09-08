@@ -1,7 +1,7 @@
-import { Product, ProductVariant, ProductColor, ProductAttributes } from "./product";
+import { Product, ProductVariant, ProductColor, ProductAttributes, ProductImageItem } from "./product";
 import { AuthUser } from "./auth";
 
-export type { Product, ProductVariant, ProductColor, ProductAttributes } from "./product";
+export type { Product, ProductVariant, ProductColor, ProductAttributes, ProductImageItem } from "./product";
 export type { Address, User } from "./user";
 export type { OrderItem, Order } from "./order";
 export type {

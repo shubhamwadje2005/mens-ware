@@ -20,6 +20,7 @@ import {
   BarChart3,
   HeartHandshake,
 } from "lucide-react";
+import ImageInputWithPreview from "@/components/admin/ImageInputWithPreview";
 
 export default function AdminAboutPage() {
   const { data, isLoading, refetch } = useGetAboutAdminQuery();
@@ -257,7 +258,7 @@ export default function AdminAboutPage() {
               Hero Banner Section
             </h2>
 
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-neutral-700 dark:text-white/80">
                   Hero Title
@@ -271,18 +272,15 @@ export default function AdminAboutPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-neutral-700 dark:text-white/80">
-                  Background Banner Image URL
-                </label>
-                <input
-                  type="text"
-                  value={heroImage}
-                  onChange={(e) => setHeroImage(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-neutral-50 dark:bg-white/5 px-4 py-2.5 text-xs text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]"
-                />
-              </div>
+              <ImageInputWithPreview
+                label="Hero Background Banner Image"
+                value={heroImage}
+                onChange={(val) => setHeroImage(val)}
+                placeholder="https://images.unsplash.com/... or choose file"
+                aspectRatio="21/9"
+                required
+                helpText="Hero background photo for the public about page."
+              />
             </div>
 
             <div className="space-y-2">
@@ -434,20 +432,17 @@ export default function AdminAboutPage() {
               />
             </div>
 
-            <div className="grid gap-5 sm:grid-cols-3">
-              <div className="space-y-2 sm:col-span-2">
-                <label className="text-xs font-semibold text-neutral-700 dark:text-white/80">
-                  Story / Workshop Image URL
-                </label>
-                <input
-                  type="text"
-                  value={storyImage}
-                  onChange={(e) => setStoryImage(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-neutral-50 dark:bg-white/5 px-4 py-2.5 text-xs text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]"
-                />
-              </div>
+            <ImageInputWithPreview
+              label="Story / Atelier / Workshop Image"
+              value={storyImage}
+              onChange={(val) => setStoryImage(val)}
+              placeholder="https://images.unsplash.com/... or choose file"
+              aspectRatio="4/3"
+              required
+              helpText="Craftsmanship / atelier photo displayed alongside the brand heritage story."
+            />
 
+            <div className="grid gap-5 sm:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-xs font-semibold text-neutral-700 dark:text-white/80">
                   Established Text
@@ -460,19 +455,19 @@ export default function AdminAboutPage() {
                   className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-neutral-50 dark:bg-white/5 px-4 py-2.5 text-xs text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]"
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-neutral-700 dark:text-white/80">
-                Brand Location
-              </label>
-              <input
-                type="text"
-                value={storyLocation}
-                onChange={(e) => setStoryLocation(e.target.value)}
-                placeholder="e.g. London, United Kingdom"
-                className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-neutral-50 dark:bg-white/5 px-4 py-2.5 text-xs text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]"
-              />
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-neutral-700 dark:text-white/80">
+                  Brand Location
+                </label>
+                <input
+                  type="text"
+                  value={storyLocation}
+                  onChange={(e) => setStoryLocation(e.target.value)}
+                  placeholder="e.g. London, United Kingdom"
+                  className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-neutral-50 dark:bg-white/5 px-4 py-2.5 text-xs text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]"
+                />
+              </div>
             </div>
           </div>
         )}

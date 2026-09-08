@@ -50,6 +50,11 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
     const defaultSize = product.sizes?.[0];
     const defaultColor = product.colors?.[0] || product.colorOptions?.[0]?.name;
     const defaultVariant = product.variants?.[0];
+    const variantImg =
+      typeof defaultVariant?.images?.[0] === "string"
+        ? defaultVariant.images[0]
+        : defaultVariant?.images?.[0]?.url || product.image;
+
     addItem(
       product,
       defaultSize,
@@ -59,7 +64,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
             variantId: defaultVariant._id,
             sku: defaultVariant.sku,
             price: defaultVariant.sellingPrice,
-            image: defaultVariant.images?.[0] || product.image,
+            image: variantImg,
             stock: defaultVariant.stock,
             colorCode: defaultVariant.colorCode,
           }
@@ -78,6 +83,11 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
     const defaultSize = product.sizes?.[0];
     const defaultColor = product.colors?.[0] || product.colorOptions?.[0]?.name;
     const defaultVariant = product.variants?.[0];
+    const variantImg =
+      typeof defaultVariant?.images?.[0] === "string"
+        ? defaultVariant.images[0]
+        : defaultVariant?.images?.[0]?.url || product.image;
+
     addItem(
       product,
       defaultSize,
@@ -87,7 +97,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
             variantId: defaultVariant._id,
             sku: defaultVariant.sku,
             price: defaultVariant.sellingPrice,
-            image: defaultVariant.images?.[0] || product.image,
+            image: variantImg,
             stock: defaultVariant.stock,
             colorCode: defaultVariant.colorCode,
           }

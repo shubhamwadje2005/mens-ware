@@ -74,6 +74,48 @@ exports.createProduct = async (req, res) => {
   try {
     const data = { ...req.body };
 
+    // Process & Normalize Images
+    if (Array.isArray(data.images) && data.images.length > 0) {
+      let primaryUrl = null;
+      data.images = data.images.map((img, idx) => {
+        if (typeof img === "string") {
+          if (idx === 0 && !primaryUrl) primaryUrl = img;
+          return {
+            url: img.trim(),
+            type: img.startsWith("data:") ? "upload" : "url",
+            isPrimary: idx === 0,
+            sortOrder: idx,
+          };
+        } else if (img && typeof img === "object") {
+          if (img.isPrimary && !primaryUrl) primaryUrl = img.url;
+          return {
+            url: String(img.url || "").trim(),
+            type: img.type || (String(img.url || "").startsWith("data:") ? "upload" : "url"),
+            isPrimary: Boolean(img.isPrimary),
+            sortOrder: img.sortOrder !== undefined ? img.sortOrder : idx,
+          };
+        }
+        return img;
+      }).filter((img) => img && img.url);
+
+      if (!primaryUrl && data.images.length > 0) {
+        data.images[0].isPrimary = true;
+        primaryUrl = data.images[0].url;
+      }
+      if (primaryUrl) {
+        data.image = primaryUrl;
+      }
+    } else if (data.image) {
+      data.images = [
+        {
+          url: data.image.trim(),
+          type: data.image.startsWith("data:") ? "upload" : "url",
+          isPrimary: true,
+          sortOrder: 0,
+        },
+      ];
+    }
+
     // Validation
     if (!data.name || !data.category || data.price === undefined || !data.image) {
       return res.status(400).json({
@@ -168,6 +210,39 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     const data = { ...req.body };
+
+    // Process & Normalize Images
+    if (Array.isArray(data.images) && data.images.length > 0) {
+      let primaryUrl = null;
+      data.images = data.images.map((img, idx) => {
+        if (typeof img === "string") {
+          if (idx === 0 && !primaryUrl) primaryUrl = img;
+          return {
+            url: img.trim(),
+            type: img.startsWith("data:") ? "upload" : "url",
+            isPrimary: idx === 0,
+            sortOrder: idx,
+          };
+        } else if (img && typeof img === "object") {
+          if (img.isPrimary && !primaryUrl) primaryUrl = img.url;
+          return {
+            url: String(img.url || "").trim(),
+            type: img.type || (String(img.url || "").startsWith("data:") ? "upload" : "url"),
+            isPrimary: Boolean(img.isPrimary),
+            sortOrder: img.sortOrder !== undefined ? img.sortOrder : idx,
+          };
+        }
+        return img;
+      }).filter((img) => img && img.url);
+
+      if (!primaryUrl && data.images.length > 0) {
+        data.images[0].isPrimary = true;
+        primaryUrl = data.images[0].url;
+      }
+      if (primaryUrl) {
+        data.image = primaryUrl;
+      }
+    }
 
     if (!data.badge || data.badge === "") {
       data.badge = null;

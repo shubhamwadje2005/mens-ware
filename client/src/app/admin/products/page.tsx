@@ -11,7 +11,7 @@ import {
   useRestoreProductMutation,
   useToggleProductAvailabilityMutation,
 } from "@/redux/api/product.api";
-import { Product, ProductVariant, ProductColor } from "@/types";
+import { Product, ProductVariant, ProductColor, ProductImageItem } from "@/types";
 import {
   Plus,
   Search,
@@ -38,6 +38,11 @@ import {
   RefreshCw,
   Check,
   Zap,
+  Link2,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Star,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -81,17 +86,29 @@ export default function AdminProductsPage() {
   // Media
   const [primaryImage, setPrimaryImage] = useState("");
   const [hoverImage, setHoverImage] = useState("");
-  const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [galleryImages, setGalleryImages] = useState<ProductImageItem[]>([]);
   const [newGalleryUrl, setNewGalleryUrl] = useState("");
+  const [isValidatingGalleryUrl, setIsValidatingGalleryUrl] = useState(false);
+  const [isUploadingDevice, setIsUploadingDevice] = useState(false);
+  const [galleryUrlError, setGalleryUrlError] = useState<string | null>(null);
+  const [mediaActiveInputMode, setMediaActiveInputMode] = useState<"upload" | "url">("upload");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Colors
+  // Colors & Color Specific Media
   const [colorOptions, setColorOptions] = useState<ProductColor[]>([
     { name: "Light Grey", hex: "#D3D3D3", images: [], skuCode: "LG" },
     { name: "Navy Blue", hex: "#001F3F", images: [], skuCode: "NB" },
   ]);
   const [newColorName, setNewColorName] = useState("");
   const [newColorHex, setNewColorHex] = useState("#000000");
+  const [colorUrlInputs, setColorUrlInputs] = useState<Record<number, string>>({});
+  const [colorUrlValidating, setColorUrlValidating] = useState<Record<number, boolean>>({});
+  const [colorUrlErrors, setColorUrlErrors] = useState<Record<number, string | null>>({});
+  const [colorInputModes, setColorInputModes] = useState<Record<number, "upload" | "url">>({});
+  const colorFileInputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+
+  // Preview color state
+  const [previewActiveColor, setPreviewActiveColor] = useState<string>("");
 
   // Sizes
   const [sizes, setSizes] = useState<string[]>(["S", "M", "L", "XL", "XXL"]);
@@ -143,11 +160,41 @@ export default function AdminProductsPage() {
     return variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
   }, [variants]);
 
+  // Utility to test if image loads
+  const verifyImageLoad = (url: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (!url || typeof url !== "string") {
+        resolve(false);
+        return;
+      }
+      if (url.startsWith("data:image/")) {
+        resolve(true);
+        return;
+      }
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+          resolve(false);
+          return;
+        }
+      } catch {
+        resolve(false);
+        return;
+      }
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = url;
+    });
+  };
+
   // Open Create Studio
   const handleOpenCreate = () => {
     setEditingProduct(null);
     setStudioTab("basic");
     setFeedback(null);
+    setGalleryUrlError(null);
+    setMediaActiveInputMode("upload");
 
     setName("");
     setShortDescription("");
@@ -165,10 +212,22 @@ export default function AdminProductsPage() {
     setBaseOriginalPrice("2499");
     setPrimaryImage("https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&fit=crop");
     setHoverImage("https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800&fit=crop");
+    
     setGalleryImages([
-      "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&fit=crop",
-      "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800&fit=crop",
+      {
+        url: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&fit=crop",
+        type: "url",
+        isPrimary: true,
+        sortOrder: 0,
+      },
+      {
+        url: "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800&fit=crop",
+        type: "url",
+        isPrimary: false,
+        sortOrder: 1,
+      },
     ]);
+
     setColorOptions([
       { name: "Light Grey", hex: "#D3D3D3", images: [], skuCode: "LG" },
       { name: "Navy Blue", hex: "#001F3F", images: [], skuCode: "NB" },
@@ -207,6 +266,7 @@ export default function AdminProductsPage() {
       });
     });
     setVariants(generated);
+    setPreviewActiveColor("Light Grey");
 
     setShowStudioModal(true);
   };
@@ -216,6 +276,8 @@ export default function AdminProductsPage() {
     setEditingProduct(p);
     setStudioTab("basic");
     setFeedback(null);
+    setGalleryUrlError(null);
+    setMediaActiveInputMode("upload");
 
     setName(p.name || "");
     setShortDescription(p.shortDescription || "");
@@ -233,11 +295,46 @@ export default function AdminProductsPage() {
     setBaseOriginalPrice(p.originalPrice ? String(p.originalPrice) : "");
     setPrimaryImage(p.image || "");
     setHoverImage(p.hoverImage || "");
-    setGalleryImages(p.images && p.images.length > 0 ? p.images : [p.image || ""]);
+
+    // Parse existing images into ProductImageItem[]
+    const rawImages = p.images && p.images.length > 0 ? p.images : (p.image ? [p.image] : []);
+    const parsedImages: ProductImageItem[] = rawImages.map((img: any, idx: number) => {
+      if (typeof img === "string") {
+        const isPri = img === p.image || idx === 0;
+        return {
+          url: img,
+          type: img.startsWith("data:") ? "upload" : "url",
+          isPrimary: isPri,
+          sortOrder: idx,
+        };
+      } else if (img && typeof img === "object") {
+        return {
+          url: img.url,
+          type: img.type || (img.url?.startsWith("data:") ? "upload" : "url"),
+          isPrimary: img.isPrimary !== undefined ? img.isPrimary : (img.url === p.image || idx === 0),
+          sortOrder: img.sortOrder !== undefined ? img.sortOrder : idx,
+        };
+      }
+      return { url: "", type: "url", isPrimary: false, sortOrder: idx };
+    }).filter((img) => img.url);
+
+    if (!parsedImages.some((img) => img.isPrimary) && parsedImages.length > 0) {
+      parsedImages[0].isPrimary = true;
+    }
+    setGalleryImages(parsedImages);
+    setPrimaryImage(parsedImages.find((img) => img.isPrimary)?.url || p.image || "");
 
     // Populate colors
     if (p.colorOptions && p.colorOptions.length > 0) {
-      setColorOptions(p.colorOptions);
+      setColorOptions(
+        p.colorOptions.map((c) => ({
+          name: c.name,
+          hex: c.hex,
+          skuCode: c.skuCode || c.name.slice(0, 3).toUpperCase(),
+          images: (c.images || []).map((img) => (typeof img === "string" ? img : img.url)),
+        }))
+      );
+      setPreviewActiveColor(p.colorOptions[0].name);
     } else if (p.colors && p.colors.length > 0) {
       setColorOptions(
         p.colors.map((c) => ({
@@ -247,8 +344,10 @@ export default function AdminProductsPage() {
           skuCode: c.slice(0, 2).toUpperCase(),
         }))
       );
+      setPreviewActiveColor(p.colors[0]);
     } else {
       setColorOptions([{ name: "Black", hex: "#000000", images: [], skuCode: "BLK" }]);
+      setPreviewActiveColor("Black");
     }
 
     // Populate sizes
@@ -262,7 +361,6 @@ export default function AdminProductsPage() {
     if (p.variants && p.variants.length > 0) {
       setVariants(p.variants);
     } else {
-      // Auto-generate variants for legacy product
       const colList = p.colors && p.colors.length > 0 ? p.colors : ["Standard"];
       const sizeList = p.sizes && p.sizes.length > 0 ? p.sizes : ["Free Size"];
       const gen: ProductVariant[] = [];
@@ -300,6 +398,234 @@ export default function AdminProductsPage() {
     setShowStudioModal(true);
   };
 
+  // Device File Upload Handler for Main Gallery
+  const handleDeviceUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploadingDevice(true);
+    setGalleryUrlError(null);
+
+    const newItems: ProductImageItem[] = [];
+    let processed = 0;
+
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith("image/")) {
+        processed++;
+        if (processed === files.length) setIsUploadingDevice(false);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (loadEvt) => {
+        const base64 = loadEvt.target?.result as string;
+        if (base64) {
+          newItems.push({
+            url: base64,
+            type: "upload",
+            isPrimary: galleryImages.length === 0 && newItems.length === 0,
+            sortOrder: galleryImages.length + newItems.length,
+          });
+        }
+        processed++;
+        if (processed === files.length) {
+          setGalleryImages((prev) => {
+            const combined = [...prev, ...newItems];
+            if (!combined.some((img) => img.isPrimary) && combined.length > 0) {
+              combined[0].isPrimary = true;
+            }
+            const pri = combined.find((img) => img.isPrimary)?.url || combined[0]?.url || "";
+            setPrimaryImage(pri);
+            return combined;
+          });
+          setIsUploadingDevice(false);
+          setFeedback({ type: "success", message: `Successfully loaded ${newItems.length} image(s) from device.` });
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
+  };
+
+  // Add Image URL for Main Gallery
+  const handleAddGalleryUrl = async () => {
+    const trimmed = newGalleryUrl.trim();
+    if (!trimmed) {
+      setGalleryUrlError("Please enter an image URL.");
+      return;
+    }
+    setGalleryUrlError(null);
+    setIsValidatingGalleryUrl(true);
+
+    const isValid = await verifyImageLoad(trimmed);
+    setIsValidatingGalleryUrl(false);
+
+    if (!isValid) {
+      setGalleryUrlError("Unable to load image from this URL. Please verify the link is accessible and is a valid image (JPG, PNG, WEBP).");
+      return;
+    }
+
+    const isFirst = galleryImages.length === 0;
+    const newItem: ProductImageItem = {
+      url: trimmed,
+      type: "url",
+      isPrimary: isFirst,
+      sortOrder: galleryImages.length,
+    };
+
+    setGalleryImages((prev) => {
+      const updated = [...prev, newItem];
+      if (isFirst) setPrimaryImage(trimmed);
+      return updated;
+    });
+    setNewGalleryUrl("");
+    setFeedback({ type: "success", message: "Image URL validated and added to gallery!" });
+  };
+
+  // Set Primary Image in Main Gallery
+  const handleSetPrimary = (index: number) => {
+    setGalleryImages((prev) => {
+      const updated = prev.map((img, idx) => ({
+        ...img,
+        isPrimary: idx === index,
+      }));
+      setPrimaryImage(updated[index].url);
+      return updated;
+    });
+    setFeedback({ type: "success", message: `Image #${index + 1} marked as Primary Image.` });
+  };
+
+  // Remove Image from Main Gallery
+  const handleRemoveGalleryImage = (index: number) => {
+    setGalleryImages((prev) => {
+      const updated = prev.filter((_, idx) => idx !== index);
+      if (updated.length > 0 && !updated.some((img) => img.isPrimary)) {
+        updated[0].isPrimary = true;
+        setPrimaryImage(updated[0].url);
+      } else if (updated.length === 0) {
+        setPrimaryImage("");
+      } else {
+        const pri = updated.find((img) => img.isPrimary)?.url || updated[0]?.url || "";
+        setPrimaryImage(pri);
+      }
+      return updated;
+    });
+  };
+
+  // Reorder Main Gallery Image
+  const handleMoveGalleryImage = (index: number, direction: "left" | "right") => {
+    setGalleryImages((prev) => {
+      const targetIdx = direction === "left" ? index - 1 : index + 1;
+      if (targetIdx < 0 || targetIdx >= prev.length) return prev;
+      const copy = [...prev];
+      const temp = copy[index];
+      copy[index] = copy[targetIdx];
+      copy[targetIdx] = temp;
+      return copy.map((img, i) => ({ ...img, sortOrder: i }));
+    });
+  };
+
+  // Color-Specific Image Handlers
+  const handleColorDeviceUpload = (colorIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newImgs: string[] = [];
+    let processed = 0;
+
+    Array.from(files).forEach((file) => {
+      if (!file.type.startsWith("image/")) {
+        processed++;
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (loadEvt) => {
+        const base64 = loadEvt.target?.result as string;
+        if (base64) newImgs.push(base64);
+        processed++;
+        if (processed === files.length) {
+          setColorOptions((prev) =>
+            prev.map((c, idx) => {
+              if (idx !== colorIndex) return c;
+              const existing = (c.images || []).map((img) => (typeof img === "string" ? img : img.url));
+              return {
+                ...c,
+                images: [...existing, ...newImgs],
+              };
+            })
+          );
+          setFeedback({ type: "success", message: `Added ${newImgs.length} image(s) for color ${colorOptions[colorIndex]?.name}.` });
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = "";
+  };
+
+  const handleColorAddUrl = async (colorIndex: number) => {
+    const inputUrl = colorUrlInputs[colorIndex]?.trim();
+    if (!inputUrl) {
+      setColorUrlErrors((prev) => ({ ...prev, [colorIndex]: "Please enter an image URL." }));
+      return;
+    }
+    setColorUrlErrors((prev) => ({ ...prev, [colorIndex]: null }));
+    setColorUrlValidating((prev) => ({ ...prev, [colorIndex]: true }));
+
+    const isValid = await verifyImageLoad(inputUrl);
+    setColorUrlValidating((prev) => ({ ...prev, [colorIndex]: false }));
+
+    if (!isValid) {
+      setColorUrlErrors((prev) => ({
+        ...prev,
+        [colorIndex]: "Unable to load image from URL. Please ensure it is accessible.",
+      }));
+      return;
+    }
+
+    setColorOptions((prev) =>
+      prev.map((c, idx) => {
+        if (idx !== colorIndex) return c;
+        const existing = (c.images || []).map((img) => (typeof img === "string" ? img : img.url));
+        return {
+          ...c,
+          images: [...existing, inputUrl],
+        };
+      })
+    );
+    setColorUrlInputs((prev) => ({ ...prev, [colorIndex]: "" }));
+    setFeedback({ type: "success", message: `Image URL added to ${colorOptions[colorIndex]?.name}.` });
+  };
+
+  const handleColorRemoveImage = (colorIndex: number, imgIndex: number) => {
+    setColorOptions((prev) =>
+      prev.map((c, idx) => {
+        if (idx !== colorIndex) return c;
+        const existing = (c.images || []).map((img) => (typeof img === "string" ? img : img.url));
+        return {
+          ...c,
+          images: existing.filter((_, i) => i !== imgIndex),
+        };
+      })
+    );
+  };
+
+  const handleColorMoveImage = (colorIndex: number, imgIndex: number, direction: "left" | "right") => {
+    setColorOptions((prev) =>
+      prev.map((c, idx) => {
+        if (idx !== colorIndex) return c;
+        const existing = [...((c.images || []).map((img) => (typeof img === "string" ? img : img.url)))];
+        const targetIdx = direction === "left" ? imgIndex - 1 : imgIndex + 1;
+        if (targetIdx < 0 || targetIdx >= existing.length) return c;
+        const temp = existing[imgIndex];
+        existing[imgIndex] = existing[targetIdx];
+        existing[targetIdx] = temp;
+        return {
+          ...c,
+          images: existing,
+        };
+      })
+    );
+  };
+
   // Automated Variant Matrix Generation
   const handleGenerateVariants = () => {
     if (colorOptions.length === 0) {
@@ -319,14 +645,18 @@ export default function AdminProductsPage() {
     const generated: ProductVariant[] = [];
     colorOptions.forEach((col) => {
       const colCode = col.skuCode || col.name.trim().slice(0, 3).toUpperCase();
+      const colImgs = (col.images || []).map((img) => (typeof img === "string" ? img : img.url));
+
       sizes.forEach((sz) => {
-        // Check if combination already existed to preserve custom values
         const existing = variants.find(
           (v) => v.color.toLowerCase() === col.name.toLowerCase() && v.size.toLowerCase() === sz.toLowerCase()
         );
 
         if (existing) {
-          generated.push(existing);
+          generated.push({
+            ...existing,
+            images: (existing.images && existing.images.length > 0) ? existing.images : colImgs,
+          });
         } else {
           generated.push({
             color: col.name,
@@ -337,7 +667,7 @@ export default function AdminProductsPage() {
             sellingPrice: priceNum,
             discount: discountCalc,
             stock: 20,
-            images: col.images || [],
+            images: colImgs,
             isActive: true,
           });
         }
@@ -345,7 +675,7 @@ export default function AdminProductsPage() {
     });
 
     setVariants(generated);
-    setFeedback({ type: "success", message: `Generated ${generated.length} variant combinations!` });
+    setFeedback({ type: "success", message: `Generated ${generated.length} variant combinations with color images!` });
   };
 
   // Bulk update variants
@@ -375,25 +705,6 @@ export default function AdminProductsPage() {
     setFeedback({ type: "success", message: "Bulk settings applied to all variants!" });
   };
 
-  // Device file upload reader
-  const handleDeviceUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (loadEvent) => {
-        const base64 = loadEvent.target?.result as string;
-        if (!primaryImage) {
-          setPrimaryImage(base64);
-        }
-        setGalleryImages((prev) => [...prev, base64]);
-      };
-      reader.readAsDataURL(file);
-    });
-    setFeedback({ type: "success", message: "Image(s) loaded from device." });
-  };
-
   // Add Color
   const handleAddColor = () => {
     if (!newColorName.trim()) return;
@@ -409,6 +720,7 @@ export default function AdminProductsPage() {
       images: [],
     };
     setColorOptions((prev) => [...prev, newColor]);
+    if (!previewActiveColor) setPreviewActiveColor(newColor.name);
     setNewColorName("");
     setFeedback({ type: "success", message: `Color "${newColor.name}" added.` });
   };
@@ -435,8 +747,10 @@ export default function AdminProductsPage() {
       setStudioTab("basic");
       return;
     }
-    if (!primaryImage) {
-      setFeedback({ type: "error", message: "At least one primary image is required." });
+
+    const resolvedPrimary = galleryImages.find((img) => img.isPrimary)?.url || galleryImages[0]?.url || primaryImage;
+    if (!resolvedPrimary) {
+      setFeedback({ type: "error", message: "At least one product image is required in Section 2 (Media)." });
       setStudioTab("media");
       return;
     }
@@ -445,6 +759,26 @@ export default function AdminProductsPage() {
       const priceNum = Number(basePrice);
       const mrpNum = baseOriginalPrice ? Number(baseOriginalPrice) : undefined;
       const tagsArray = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
+
+      // Clean and normalize colorOptions
+      const normalizedColorOptions = colorOptions.map((c) => ({
+        name: c.name.trim(),
+        hex: c.hex,
+        skuCode: c.skuCode,
+        images: (c.images || []).map((img) => (typeof img === "string" ? img : img.url)),
+      }));
+
+      // Clean and normalize variants
+      const normalizedVariants = variants.map((v) => {
+        const matchingColor = normalizedColorOptions.find(
+          (c) => c.name.toLowerCase() === v.color.toLowerCase()
+        );
+        const vImgs = (v.images && v.images.length > 0) ? v.images : (matchingColor?.images || []);
+        return {
+          ...v,
+          images: vImgs,
+        };
+      });
 
       const payload: Partial<Product> = {
         name: name.trim(),
@@ -463,15 +797,15 @@ export default function AdminProductsPage() {
         price: priceNum,
         originalPrice: mrpNum,
 
-        image: primaryImage,
-        hoverImage: hoverImage || undefined,
+        image: resolvedPrimary,
+        hoverImage: hoverImage || (galleryImages[1]?.url || undefined),
         images: galleryImages,
 
-        colorOptions,
-        colors: colorOptions.map((c) => c.name),
+        colorOptions: normalizedColorOptions,
+        colors: normalizedColorOptions.map((c) => c.name),
         sizes,
 
-        variants,
+        variants: normalizedVariants,
 
         attributes: {
           fabric: fabric.trim(),
@@ -1065,114 +1399,255 @@ export default function AdminProductsPage() {
                 {/* 2. MEDIA & GALLERY */}
                 {studioTab === "media" && (
                   <div className="space-y-6">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-xs font-bold uppercase tracking-wider text-white/60">
-                          Upload Images from Device or URL
-                        </label>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          onChange={handleDeviceUpload}
-                          className="hidden"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-[#ff6b00]/10 border border-[#ff6b00]/30 px-3 py-1.5 text-xs font-bold text-[#ff6b00] hover:bg-[#ff6b00]/20"
-                        >
-                          <Upload size={14} /> Upload from Device
-                        </button>
-                      </div>
+                    {/* Top Mode Selection */}
+                    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 space-y-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                            <ImageIcon size={15} className="text-[#ff6b00]" /> Add Product Images
+                          </h4>
+                          <p className="text-[11px] text-white/40 mt-0.5">
+                            Support both file uploads from your computer and direct web image URLs
+                          </p>
+                        </div>
 
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="Paste image URL (https://...)"
-                          value={newGalleryUrl}
-                          onChange={(e) => setNewGalleryUrl(e.target.value)}
-                          className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-xs text-white outline-none focus:border-[#ff6b00]"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!newGalleryUrl.trim()) return;
-                            if (!primaryImage) setPrimaryImage(newGalleryUrl.trim());
-                            setGalleryImages((prev) => [...prev, newGalleryUrl.trim()]);
-                            setNewGalleryUrl("");
-                          }}
-                          className="rounded-xl bg-white/10 hover:bg-white/20 px-4 py-2.5 text-xs font-bold text-white"
-                        >
-                          Add URL
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Image Cards Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
-                      {galleryImages.map((img, index) => {
-                        const isPrimary = primaryImage === img;
-                        return (
-                          <div
-                            key={index}
-                            className={`group relative rounded-2xl overflow-hidden border-2 bg-[#0c0c0c] aspect-[3/4] flex flex-col justify-between p-2 transition-all ${
-                              isPrimary ? "border-[#ff6b00] ring-2 ring-[#ff6b00]/30" : "border-white/10"
+                        {/* Dual Input Mode Toggle Buttons */}
+                        <div className="flex items-center gap-1 rounded-xl bg-black/60 p-1 border border-white/10 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMediaActiveInputMode("upload");
+                              setGalleryUrlError(null);
+                            }}
+                            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                              mediaActiveInputMode === "upload"
+                                ? "bg-[#ff6b00] text-black shadow-md"
+                                : "text-white/60 hover:text-white"
                             }`}
                           >
-                            <img src={img} alt={`Gallery ${index + 1}`} className="absolute inset-0 h-full w-full object-cover" />
-                            
-                            <div className="relative z-10 flex justify-between items-start">
-                              {isPrimary ? (
-                                <span className="rounded bg-[#ff6b00] text-black text-[9px] font-extrabold px-1.5 py-0.5">
-                                  PRIMARY
-                                </span>
+                            <Upload size={13} /> Upload Images
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMediaActiveInputMode("url");
+                              setGalleryUrlError(null);
+                            }}
+                            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                              mediaActiveInputMode === "url"
+                                ? "bg-[#ff6b00] text-black shadow-md"
+                                : "text-white/60 hover:text-white"
+                            }`}
+                          >
+                            <Link2 size={13} /> Add Image URL
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Option 1: Device File Upload */}
+                      {mediaActiveInputMode === "upload" && (
+                        <div className="space-y-2">
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            multiple
+                            accept="image/jpeg,image/png,image/webp,image/jpg"
+                            onChange={handleDeviceUpload}
+                            className="hidden"
+                          />
+                          <div
+                            onClick={() => fileInputRef.current?.click()}
+                            className="cursor-pointer rounded-2xl border-2 border-dashed border-white/15 bg-white/[0.01] hover:bg-white/[0.04] hover:border-[#ff6b00]/60 p-6 flex flex-col items-center justify-center gap-2 text-center transition-all group"
+                          >
+                            <div className="h-12 w-12 rounded-2xl bg-[#ff6b00]/10 border border-[#ff6b00]/30 flex items-center justify-center text-[#ff6b00] group-hover:scale-110 transition-transform">
+                              {isUploadingDevice ? (
+                                <Loader2 size={22} className="animate-spin" />
                               ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => setPrimaryImage(img)}
-                                  className="rounded bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  Set Primary
-                                </button>
+                                <Upload size={22} />
                               )}
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setGalleryImages((prev) => prev.filter((_, i) => i !== index));
-                                  if (primaryImage === img) {
-                                    setPrimaryImage(galleryImages.find((_, i) => i !== index) || "");
-                                  }
-                                }}
-                                className="h-6 w-6 rounded-full bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                              >
-                                <X size={12} />
-                              </button>
                             </div>
-
-                            <span className="relative z-10 text-[9px] font-mono bg-black/60 px-1.5 py-0.5 rounded text-white/80 w-fit">
-                              Image #{index + 1}
-                            </span>
+                            <div>
+                              <p className="text-xs font-bold text-white">
+                                {isUploadingDevice ? "Processing & reading images..." : "Click to browse & upload images from your device"}
+                              </p>
+                              <p className="text-[10px] text-white/40 mt-0.5">
+                                Supports JPG, JPEG, PNG, WEBP (Multiple image selection allowed)
+                              </p>
+                            </div>
                           </div>
-                        );
-                      })}
+                        </div>
+                      )}
+
+                      {/* Option 2: Image URL Input */}
+                      {mediaActiveInputMode === "url" && (
+                        <div className="space-y-3">
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="https://images.unsplash.com/photo-... or any public image URL"
+                              value={newGalleryUrl}
+                              onChange={(e) => {
+                                setNewGalleryUrl(e.target.value);
+                                setGalleryUrlError(null);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleAddGalleryUrl();
+                                }
+                              }}
+                              className="flex-1 rounded-xl border border-white/10 bg-[#0c0c0c] px-4 py-3 text-xs text-white outline-none focus:border-[#ff6b00] transition-colors placeholder:text-white/20"
+                            />
+                            <button
+                              type="button"
+                              disabled={isValidatingGalleryUrl || !newGalleryUrl.trim()}
+                              onClick={handleAddGalleryUrl}
+                              className="rounded-xl bg-[#ff6b00] hover:bg-[#ff8533] disabled:opacity-40 px-5 py-3 text-xs font-bold text-black flex items-center gap-1.5 transition-all shadow-lg shrink-0"
+                            >
+                              {isValidatingGalleryUrl ? (
+                                <>
+                                  <Loader2 size={14} className="animate-spin" /> Verifying...
+                                </>
+                              ) : (
+                                <>
+                                  <Check size={14} /> + Add Image URL
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {galleryUrlError && (
+                            <div className="flex items-center gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 px-3.5 py-2.5 rounded-xl">
+                              <AlertCircle size={14} className="shrink-0" />
+                              <span>{galleryUrlError}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Image Gallery Cards Grid */}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-xs font-bold uppercase tracking-wider text-white/70">
+                          Product Image Gallery ({galleryImages.length} {galleryImages.length === 1 ? "Image" : "Images"})
+                        </p>
+                        <span className="text-[11px] text-white/40">
+                          First image or starred image is used as the Primary storefront photo
+                        </span>
+                      </div>
+
+                      {galleryImages.length === 0 ? (
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.01] p-10 flex flex-col items-center justify-center text-center">
+                          <ImageIcon size={32} className="text-white/20 mb-2" />
+                          <p className="text-xs font-semibold text-white/60">No images added yet</p>
+                          <p className="text-[11px] text-white/30 max-w-sm mt-1">
+                            Upload images from your computer or paste web image URLs above.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                          {galleryImages.map((img, index) => {
+                            const isPrimary = Boolean(img.isPrimary) || primaryImage === img.url;
+                            return (
+                              <div
+                                key={index}
+                                className={`group relative rounded-2xl overflow-hidden border-2 bg-[#0c0c0c] aspect-[3/4] flex flex-col justify-between p-2.5 transition-all shadow-md ${
+                                  isPrimary
+                                    ? "border-[#ff6b00] ring-2 ring-[#ff6b00]/30 shadow-[#ff6b00]/10"
+                                    : "border-white/10 hover:border-white/30"
+                                }`}
+                              >
+                                <img
+                                  src={img.url}
+                                  alt={`Product image ${index + 1}`}
+                                  className="absolute inset-0 h-full w-full object-cover"
+                                />
+
+                                <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-black/80 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                                {/* Card Header / Badges */}
+                                <div className="relative z-10 flex items-start justify-between gap-1">
+                                  {isPrimary ? (
+                                    <span className="rounded-md bg-[#ff6b00] text-black text-[9px] font-extrabold px-2 py-0.5 shadow flex items-center gap-1">
+                                      <Star size={10} className="fill-black" /> PRIMARY
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSetPrimary(index)}
+                                      className="rounded-md bg-black/80 backdrop-blur-sm text-white hover:text-[#ff6b00] hover:bg-black text-[9px] font-bold px-2 py-0.5 opacity-0 group-hover:opacity-100 transition-all border border-white/10"
+                                    >
+                                      Set Primary
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveGalleryImage(index)}
+                                    className="h-6 w-6 rounded-full bg-red-500/80 hover:bg-red-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow"
+                                    title="Remove image"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+
+                                {/* Card Footer: Reorder & Type Info */}
+                                <div className="relative z-10 flex items-center justify-between">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[9px] font-mono bg-black/80 px-1.5 py-0.5 rounded text-white/80 border border-white/10">
+                                      #{index + 1}
+                                    </span>
+                                    <span className="text-[8px] font-bold uppercase bg-white/10 px-1.5 py-0.5 rounded text-white/60">
+                                      {img.type === "upload" ? "Upload" : "URL"}
+                                    </span>
+                                  </div>
+
+                                  {/* Reorder Buttons */}
+                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {index > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleMoveGalleryImage(index, "left")}
+                                        className="h-5 w-5 rounded bg-black/80 hover:bg-[#ff6b00] hover:text-black text-white flex items-center justify-center border border-white/10 text-[10px]"
+                                        title="Move Left"
+                                      >
+                                        <ChevronLeft size={12} />
+                                      </button>
+                                    )}
+                                    {index < galleryImages.length - 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleMoveGalleryImage(index, "right")}
+                                        className="h-5 w-5 rounded bg-black/80 hover:bg-[#ff6b00] hover:text-black text-white flex items-center justify-center border border-white/10 text-[10px]"
+                                        title="Move Right"
+                                      >
+                                        <ChevronRight size={12} />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
 
-                {/* 3. COLORS CONFIGURATION */}
+                {/* 3. COLORS & COLOR-SPECIFIC MEDIA */}
                 {studioTab === "colors" && (
                   <div className="space-y-6">
+                    {/* Add Color Form */}
                     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-3">
-                        Add Product Color
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-white mb-3 flex items-center gap-2">
+                        <Palette size={15} className="text-[#ff6b00]" /> Add Product Color
                       </h4>
                       <div className="flex flex-wrap items-center gap-3">
                         <input
                           type="text"
-                          placeholder="Color Name (e.g. Light Grey, Navy Blue)"
+                          placeholder="Color Name (e.g. Light Grey, Navy Blue, Maroon)"
                           value={newColorName}
                           onChange={(e) => setNewColorName(e.target.value)}
                           className="flex-1 min-w-[200px] rounded-xl border border-white/10 bg-[#0c0c0c] px-4 py-2.5 text-xs text-white outline-none focus:border-[#ff6b00]"
@@ -1196,30 +1671,188 @@ export default function AdminProductsPage() {
                       </div>
                     </div>
 
-                    {/* Active Colors List */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      {colorOptions.map((c, idx) => (
-                        <div key={idx} className="rounded-2xl border border-white/10 bg-[#0c0c0c] p-4 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <span
-                              className="h-8 w-8 rounded-full border-2 border-white/20 shadow-md shrink-0"
-                              style={{ backgroundColor: c.hex }}
-                            />
-                            <div>
-                              <p className="font-bold text-white text-xs">{c.name}</p>
-                              <p className="text-[10px] font-mono text-white/40">HEX: {c.hex} · SKU: {c.skuCode || c.name.slice(0, 3)}</p>
+                    {/* Active Colors List with Color-Specific Media Gallery */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-white/70">
+                          Configured Colors & Color-Specific Galleries ({colorOptions.length})
+                        </h4>
+                        <span className="text-[11px] text-white/40">
+                          Each color can have its own dedicated image gallery for customer swatch switching
+                        </span>
+                      </div>
+
+                      {colorOptions.map((c, idx) => {
+                        const colImgs = (c.images || []).map((img) => (typeof img === "string" ? img : img.url));
+                        const currentMode = colorInputModes[idx] || "upload";
+
+                        return (
+                          <div
+                            key={idx}
+                            className="rounded-2xl border border-white/10 bg-[#0c0c0c] p-5 space-y-4 transition-all"
+                          >
+                            {/* Color Header */}
+                            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
+                              <div className="flex items-center gap-3">
+                                <span
+                                  className="h-8 w-8 rounded-full border-2 border-white/20 shadow-md shrink-0"
+                                  style={{ backgroundColor: c.hex }}
+                                />
+                                <div>
+                                  <p className="font-bold text-white text-sm">{c.name}</p>
+                                  <p className="text-[11px] font-mono text-white/40">
+                                    HEX: {c.hex} · SKU Code: {c.skuCode || c.name.slice(0, 3)} · {colImgs.length} {colImgs.length === 1 ? "Image" : "Images"}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {/* Mode Selector for this color */}
+                                <div className="flex items-center gap-1 rounded-lg bg-white/5 p-0.5 border border-white/10">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setColorInputModes((prev) => ({ ...prev, [idx]: "upload" }))
+                                    }
+                                    className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${
+                                      currentMode === "upload"
+                                        ? "bg-[#ff6b00] text-black"
+                                        : "text-white/60 hover:text-white"
+                                    }`}
+                                  >
+                                    <Upload size={10} className="inline mr-1" /> Upload
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setColorInputModes((prev) => ({ ...prev, [idx]: "url" }))
+                                    }
+                                    className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${
+                                      currentMode === "url"
+                                        ? "bg-[#ff6b00] text-black"
+                                        : "text-white/60 hover:text-white"
+                                    }`}
+                                  >
+                                    <Link2 size={10} className="inline mr-1" /> URL
+                                  </button>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setColorOptions((prev) => prev.filter((_, i) => i !== idx))}
+                                  className="text-white/30 hover:text-red-400 p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+                                  title="Delete color"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Color Image Input Section */}
+                            <div className="space-y-3">
+                              {currentMode === "upload" ? (
+                                <div>
+                                  <input
+                                    ref={(el) => {
+                                      colorFileInputRefs.current[idx] = el;
+                                    }}
+                                    type="file"
+                                    multiple
+                                    accept="image/jpeg,image/png,image/webp,image/jpg"
+                                    onChange={(e) => handleColorDeviceUpload(idx, e)}
+                                    className="hidden"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => colorFileInputRefs.current[idx]?.click()}
+                                    className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/[0.02] hover:bg-white/[0.05] hover:border-[#ff6b00]/50 py-2.5 px-4 text-xs font-semibold text-white/80 hover:text-white transition-all"
+                                  >
+                                    <Upload size={13} className="text-[#ff6b00]" />
+                                    <span>Upload Photos for {c.name} (from computer)</span>
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <div className="flex gap-2">
+                                    <input
+                                      type="text"
+                                      placeholder={`Paste image URL for ${c.name}...`}
+                                      value={colorUrlInputs[idx] || ""}
+                                      onChange={(e) =>
+                                        setColorUrlInputs((prev) => ({ ...prev, [idx]: e.target.value }))
+                                      }
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          e.preventDefault();
+                                          handleColorAddUrl(idx);
+                                        }
+                                      }}
+                                      className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white outline-none focus:border-[#ff6b00] placeholder:text-white/20"
+                                    />
+                                    <button
+                                      type="button"
+                                      disabled={colorUrlValidating[idx] || !colorUrlInputs[idx]?.trim()}
+                                      onClick={() => handleColorAddUrl(idx)}
+                                      className="rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-40 px-3 py-2 text-xs font-bold text-white flex items-center gap-1 shrink-0"
+                                    >
+                                      {colorUrlValidating[idx] ? (
+                                        <Loader2 size={12} className="animate-spin" />
+                                      ) : (
+                                        <Check size={12} />
+                                      )}
+                                      Add URL
+                                    </button>
+                                  </div>
+                                  {colorUrlErrors[idx] && (
+                                    <p className="text-[11px] text-red-400">{colorUrlErrors[idx]}</p>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Color Image Thumbnails */}
+                              {colImgs.length > 0 && (
+                                <div className="flex flex-wrap items-center gap-3 pt-2">
+                                  {colImgs.map((imgUrl, imgIdx) => (
+                                    <div
+                                      key={imgIdx}
+                                      className="group relative h-16 w-16 rounded-xl overflow-hidden border border-white/15 bg-black"
+                                    >
+                                      <img src={imgUrl} alt={`${c.name} ${imgIdx + 1}`} className="h-full w-full object-cover" />
+                                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                                        {imgIdx > 0 && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleColorMoveImage(idx, imgIdx, "left")}
+                                            className="h-5 w-5 rounded bg-black/80 hover:bg-[#ff6b00] hover:text-black text-white flex items-center justify-center text-[10px]"
+                                          >
+                                            <ChevronLeft size={10} />
+                                          </button>
+                                        )}
+                                        <button
+                                          type="button"
+                                          onClick={() => handleColorRemoveImage(idx, imgIdx)}
+                                          className="h-5 w-5 rounded bg-red-500 hover:bg-red-600 text-white flex items-center justify-center text-[10px]"
+                                        >
+                                          <X size={10} />
+                                        </button>
+                                        {imgIdx < colImgs.length - 1 && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleColorMoveImage(idx, imgIdx, "right")}
+                                            className="h-5 w-5 rounded bg-black/80 hover:bg-[#ff6b00] hover:text-black text-white flex items-center justify-center text-[10px]"
+                                          >
+                                            <ChevronRight size={10} />
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
-
-                          <button
-                            type="button"
-                            onClick={() => setColorOptions((prev) => prev.filter((_, i) => i !== idx))}
-                            className="text-white/30 hover:text-red-400 p-1"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1625,72 +2258,135 @@ export default function AdminProductsPage() {
 
                 {/* 7. LIVE CUSTOMER PREVIEW */}
                 {studioTab === "preview" && (
-                  <div className="rounded-2xl border border-white/10 bg-[#0c0c0c] p-6 max-w-4xl mx-auto">
-                    <p className="text-xs font-bold uppercase tracking-wider text-[#ff6b00] mb-4 flex items-center gap-2">
+                  <div className="rounded-2xl border border-white/10 bg-[#0c0c0c] p-6 max-w-4xl mx-auto space-y-4">
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#ff6b00] flex items-center gap-2">
                       <Eye size={15} /> Live Customer Storefront Preview
                     </p>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-black border border-white/10 relative">
-                        <img
-                          src={primaryImage || "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800"}
-                          alt={name}
-                          className="h-full w-full object-cover"
-                        />
-                        {badge && (
-                          <span className="absolute top-4 left-4 rounded-full bg-black/80 px-3 py-1 text-[10px] font-bold text-[#ff6b00] border border-[#ff6b00]/30">
-                            {badge}
-                          </span>
-                        )}
-                      </div>
+                    {(() => {
+                      const activeColOpt = colorOptions.find(
+                        (c) => c.name.toLowerCase() === (previewActiveColor || colorOptions[0]?.name || "").toLowerCase()
+                      );
+                      const activeColImgs = (activeColOpt?.images || []).map((img) =>
+                        typeof img === "string" ? img : img.url
+                      );
+                      const displayImg =
+                        activeColImgs.length > 0
+                          ? activeColImgs[0]
+                          : galleryImages.find((img) => img.isPrimary)?.url || galleryImages[0]?.url || primaryImage;
 
-                      <div className="flex flex-col justify-between">
-                        <div>
-                          <p className="text-[10px] font-bold tracking-widest text-[#ff6b00] uppercase">
-                            {brand} · {category}
-                          </p>
-                          <h3 className="text-2xl font-light text-white mt-1 mb-2">{name || "Product Title"}</h3>
-                          
-                          <div className="flex items-baseline gap-3 my-4">
-                            <span className="text-3xl font-bold text-white">₹{Number(basePrice || 0).toLocaleString()}</span>
-                            {baseOriginalPrice && Number(baseOriginalPrice) > Number(basePrice) && (
-                              <span className="text-base text-white/30 line-through">
-                                ₹{Number(baseOriginalPrice).toLocaleString()}
-                              </span>
+                      return (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          <div className="space-y-3">
+                            <div className="aspect-[3/4] rounded-2xl overflow-hidden bg-black border border-white/10 relative shadow-xl">
+                              <img
+                                src={displayImg || "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800"}
+                                alt={name}
+                                className="h-full w-full object-cover"
+                              />
+                              {badge && (
+                                <span className="absolute top-4 left-4 rounded-full bg-black/80 backdrop-blur-md px-3 py-1 text-[10px] font-bold text-[#ff6b00] border border-[#ff6b00]/30 shadow">
+                                  {badge}
+                                </span>
+                              )}
+                              {activeColOpt && (
+                                <span className="absolute bottom-3 left-3 rounded-lg bg-black/70 backdrop-blur-md px-2.5 py-1 text-[10px] font-medium text-white/90 border border-white/10">
+                                  Color: {activeColOpt.name}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Preview Mini Thumbnails */}
+                            {(activeColImgs.length > 0 ? activeColImgs : galleryImages.map((g) => g.url)).length > 1 && (
+                              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                                {(activeColImgs.length > 0 ? activeColImgs : galleryImages.map((g) => g.url)).map(
+                                  (thumbUrl, tIdx) => (
+                                    <div
+                                      key={tIdx}
+                                      className="h-12 w-10 rounded-lg overflow-hidden border border-white/20 bg-black shrink-0"
+                                    >
+                                      <img src={thumbUrl} alt="Thumb" className="h-full w-full object-cover" />
+                                    </div>
+                                  )
+                                )}
+                              </div>
                             )}
                           </div>
 
-                          <div className="space-y-4 my-6">
+                          <div className="flex flex-col justify-between">
                             <div>
-                              <p className="text-xs text-white/50 uppercase font-semibold mb-2">Available Colors:</p>
-                              <div className="flex gap-2">
-                                {colorOptions.map((c) => (
-                                  <div key={c.name} className="flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/5 px-2.5 py-1 text-xs">
-                                    <span className="h-3 w-3 rounded-full border border-white/20" style={{ backgroundColor: c.hex }} />
-                                    <span>{c.name}</span>
+                              <p className="text-[10px] font-bold tracking-widest text-[#ff6b00] uppercase">
+                                {brand || "NOIR STUDIO"} · {category}
+                              </p>
+                              <h3 className="text-2xl font-light text-white mt-1 mb-2">{name || "Product Title"}</h3>
+                              
+                              <div className="flex items-baseline gap-3 my-4">
+                                <span className="text-3xl font-bold text-white">₹{Number(basePrice || 0).toLocaleString()}</span>
+                                {baseOriginalPrice && Number(baseOriginalPrice) > Number(basePrice) && (
+                                  <span className="text-base text-white/30 line-through">
+                                    ₹{Number(baseOriginalPrice).toLocaleString()}
+                                  </span>
+                                )}
+                                {baseOriginalPrice && Number(baseOriginalPrice) > Number(basePrice) && (
+                                  <span className="rounded-full bg-[#ff6b00]/10 border border-[#ff6b00]/30 px-2 py-0.5 text-xs font-bold text-[#ff6b00]">
+                                    {Math.round(((Number(baseOriginalPrice) - Number(basePrice)) / Number(baseOriginalPrice)) * 100)}% OFF
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="space-y-4 my-6">
+                                <div>
+                                  <p className="text-xs text-white/50 uppercase font-semibold mb-2">
+                                    Select Color Swatch (Click to switch preview):
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {colorOptions.map((c) => {
+                                      const isSelected =
+                                        (previewActiveColor || colorOptions[0]?.name).toLowerCase() ===
+                                        c.name.toLowerCase();
+                                      return (
+                                        <button
+                                          type="button"
+                                          key={c.name}
+                                          onClick={() => setPreviewActiveColor(c.name)}
+                                          className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all ${
+                                            isSelected
+                                              ? "border-[#ff6b00] bg-[#ff6b00]/15 text-white shadow-md shadow-[#ff6b00]/10"
+                                              : "border-white/10 bg-white/5 text-white/70 hover:border-white/30"
+                                          }`}
+                                        >
+                                          <span
+                                            className="h-3.5 w-3.5 rounded-full border border-white/20 shadow"
+                                            style={{ backgroundColor: c.hex }}
+                                          />
+                                          <span>{c.name}</span>
+                                          {isSelected && <Check size={12} className="text-[#ff6b00]" />}
+                                        </button>
+                                      );
+                                    })}
                                   </div>
-                                ))}
+                                </div>
+
+                                <div>
+                                  <p className="text-xs text-white/50 uppercase font-semibold mb-2">Available Sizes:</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {sizes.map((s) => (
+                                      <span key={s} className="rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-semibold">
+                                        {s}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
                               </div>
                             </div>
 
-                            <div>
-                              <p className="text-xs text-white/50 uppercase font-semibold mb-2">Available Sizes:</p>
-                              <div className="flex flex-wrap gap-2">
-                                {sizes.map((s) => (
-                                  <span key={s} className="rounded-lg border border-white/20 bg-white/5 px-3 py-1.5 text-xs font-semibold">
-                                    {s}
-                                  </span>
-                                ))}
-                              </div>
+                            <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02] text-xs text-white/60">
+                              Total calculated inventory across {variants.length} combinations: <strong className="text-white">{totalCalculatedStock} units</strong>
                             </div>
                           </div>
                         </div>
-
-                        <div className="p-4 rounded-xl border border-white/10 bg-white/[0.02] text-xs text-white/60">
-                          Total calculated inventory across {variants.length} combinations: <strong className="text-white">{totalCalculatedStock} units</strong>
-                        </div>
-                      </div>
-                    </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>

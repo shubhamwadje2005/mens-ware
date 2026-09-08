@@ -1,3 +1,10 @@
+export interface ProductImageItem {
+  url: string;
+  type?: "upload" | "url";
+  isPrimary?: boolean;
+  sortOrder?: number;
+}
+
 export interface ProductVariant {
   _id?: string;
   color: string;
@@ -8,7 +15,7 @@ export interface ProductVariant {
   sellingPrice: number;
   discount?: number;
   stock: number;
-  images?: string[];
+  images?: (ProductImageItem | string)[];
   isActive?: boolean;
 }
 
@@ -16,7 +23,7 @@ export interface ProductColor {
   _id?: string;
   name: string;
   hex: string;
-  images?: string[];
+  images?: (ProductImageItem | string)[];
   skuCode?: string;
 }
 
@@ -56,7 +63,7 @@ export interface Product {
 
   image: string;
   hoverImage?: string;
-  images?: string[];
+  images?: (ProductImageItem | string)[];
 
   colorOptions?: ProductColor[];
   colors?: string[];

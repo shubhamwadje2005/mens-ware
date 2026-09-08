@@ -10,6 +10,7 @@ import {
   Campaign,
 } from "@/redux/api/campaign.api";
 import { Plus, Edit2, Trash2, X, Save, CheckCircle2, Eye, Sparkles, Image as ImageIcon, Loader2 } from "lucide-react";
+import ImageInputWithPreview from "@/components/admin/ImageInputWithPreview";
 
 export default function AdminCampaignPage() {
   const { data, isLoading } = useGetAllCampaignsQuery();
@@ -368,34 +369,28 @@ export default function AdminCampaignPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-white/70">
-                      Heading Line 2 (Orange Gradient)
-                    </label>
-                    <input
-                      type="text"
-                      value={form.titleLine2}
-                      onChange={(e) => setForm({ ...form, titleLine2: e.target.value })}
-                      placeholder="e.g. Ordinary"
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-[#ff6b00] focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-xs font-semibold text-white/70">
-                      Background Image URL <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="url"
-                      required
-                      value={form.image}
-                      onChange={(e) => setForm({ ...form, image: e.target.value })}
-                      placeholder="https://images.unsplash.com/..."
-                      className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-[#ff6b00] focus:outline-none"
-                    />
-                  </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-white/70">
+                    Heading Line 2 (Orange Gradient)
+                  </label>
+                  <input
+                    type="text"
+                    value={form.titleLine2}
+                    onChange={(e) => setForm({ ...form, titleLine2: e.target.value })}
+                    placeholder="e.g. Ordinary"
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:border-[#ff6b00] focus:outline-none"
+                  />
                 </div>
+
+                <ImageInputWithPreview
+                  label="Background Banner Image"
+                  value={form.image}
+                  onChange={(val) => setForm({ ...form, image: val })}
+                  placeholder="https://images.unsplash.com/... or choose file"
+                  aspectRatio="21/9"
+                  required
+                  helpText="Hero landscape photo for this campaign banner."
+                />
 
                 <div>
                   <label className="mb-1.5 block text-xs font-semibold text-white/70">

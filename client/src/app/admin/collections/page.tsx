@@ -24,6 +24,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import Link from "next/link";
+import ImageInputWithPreview from "@/components/admin/ImageInputWithPreview";
 
 export default function AdminCollectionsPage() {
   const { data: collections = [], isLoading } = useGetAllCollectionsQuery();
@@ -354,18 +355,15 @@ export default function AdminCollectionsPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-white/40">
-                    Image URL *
-                  </label>
-                  <input
-                    type="text"
-                    value={form.image}
-                    placeholder="https://images.unsplash.com/..."
-                    onChange={(e) => setForm({ ...form, image: e.target.value })}
-                    className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white outline-none focus:border-[#ff6b00]/50 transition-colors placeholder:text-white/20"
-                  />
-                </div>
+                <ImageInputWithPreview
+                  label="Collection Banner Image"
+                  value={form.image}
+                  onChange={(val) => setForm({ ...form, image: val })}
+                  placeholder="https://images.unsplash.com/... or choose file"
+                  aspectRatio="16/9"
+                  required
+                  helpText="Hero photo for the collection card banner."
+                />
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>

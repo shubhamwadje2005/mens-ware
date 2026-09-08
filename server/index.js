@@ -14,13 +14,33 @@ const collectionRoutes = require("./routes/collectionRoutes");
 
 const app = express();
 
+const allowedOrigins = [
+  "https://client-mens-ware.vercel.app",
+  process.env.CLIENT_URL,
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://localhost:5173",
+].filter(Boolean);
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with credentials from any origin during development
-      callback(null, origin || true);
+      // Allow requests with no origin (e.g. mobile apps, curl, Postman)
+      if (!origin) return callback(null, true);
+
+      const isAllowed =
+        allowedOrigins.includes(origin) ||
+        origin === "https://client-mens-ware.vercel.app" ||
+        (origin.endsWith(".vercel.app") && origin.includes("client-mens-ware"));
+
+      if (isAllowed || process.env.NODE_ENV !== "production") {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origin ${origin} not allowed by CORS`));
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie", "X-Requested-With"],
   })
 );
 app.use(cookieParser());

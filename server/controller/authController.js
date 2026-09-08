@@ -157,8 +157,14 @@ exports.adminLogin = async (req, res) => {
       return res.status(401).json({ message: "Invalid Password" })
     }
 
-    const token = jwt.sign({ _id: result._id }, process.env.JWT_KEY || "secret")
-    res.cookie("ADMIN", token, { maxAge: 1000 * 60 * 60 * 24, httpOnly: true, secure: false })
+    const isProduction = process.env.NODE_ENV === "production";
+    const token = jwt.sign({ _id: result._id }, process.env.JWT_KEY || "secret");
+    res.cookie("ADMIN", token, {
+      maxAge: 1000 * 60 * 60 * 24,
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+    });
     res.status(200).json({
       message: "Admin Login Success",
       // token,
@@ -167,19 +173,24 @@ exports.adminLogin = async (req, res) => {
         email: result.email,
         mobile: result.mobile,
         _id: result._id,
-      }
-    })
+      },
+    });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(400).json({ message: error.message });
   }
 };
 
 exports.adminLogout = async (req, res) => {
   try {
-    res.clearCookie("ADMIN")
-    res.status(200).json({ message: 'Admin Logout Success' })
+    const isProduction = process.env.NODE_ENV === "production";
+    res.clearCookie("ADMIN", {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+    });
+    res.status(200).json({ message: "Admin Logout Success" });
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    res.status(500).json({ message: error.message });
   }
-}
+};

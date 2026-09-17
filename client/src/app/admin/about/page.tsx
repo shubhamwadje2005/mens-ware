@@ -21,6 +21,7 @@ import {
   HeartHandshake,
 } from "lucide-react";
 import ImageInputWithPreview from "@/components/admin/ImageInputWithPreview";
+import { FormSkeleton, Skeleton } from "@/components/admin/AdminSkeletons";
 
 export default function AdminAboutPage() {
   const { data, isLoading, refetch } = useGetAboutAdminQuery();
@@ -179,8 +180,15 @@ export default function AdminAboutPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-[70vh] items-center justify-center">
-        <Loader2 className="animate-spin text-[#ff6b00]" size={36} />
+      <div className="space-y-6 max-w-5xl pb-16">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-64 rounded-lg" />
+            <Skeleton className="h-3.5 w-80 rounded-md" />
+          </div>
+          <Skeleton className="h-10 w-32 rounded-xl" />
+        </div>
+        <FormSkeleton />
       </div>
     );
   }

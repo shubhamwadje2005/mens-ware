@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
@@ -42,14 +42,21 @@ const Navbar = dynamic(() => import("@/components/navbar/Navbar"));
 const Footer = dynamic(() => import("@/components/footer/Footer"));
 const ToastContainer = dynamic(() => import("@/components/toast/ToastContainer"));
 const SearchModal = dynamic(() => import("@/components/search/SearchModal"));
+import { ProductDetailSkeleton } from "@/components/ui/StoreSkeletons";
 
 export default function ProductPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const slug = params.slug as string;
+  const initialColorQuery = searchParams ? searchParams.get("color") : null;
 
-  const { data: product, isLoading: productLoading } = useGetProductBySlugQuery(slug);
-  const { data: allProducts = [] } = useGetProductsQuery();
+  const { data: product, isLoading: productLoading } = useGetProductBySlugQuery(slug, {
+    refetchOnMountOrArgChange: true,
+  });
+  const { data: allProducts = [] } = useGetProductsQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
 
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
@@ -64,6 +71,79 @@ export default function ProductPage() {
   const { isInWishlist, toggleItem } = useWishlist();
   const { addToast } = useToast();
   const mainImageRef = useRef<HTMLDivElement>(null);
+  const thumbnailScrollRef = useRef<HTMLDivElement>(null);
+  const touchStartXRef = useRef<number>(0);
+
+  const scrollSelectedThumbnailIntoView = (index: number) => {
+    if (!thumbnailScrollRef.current) return;
+    const container = thumbnailScrollRef.current;
+    const thumbElements = container.querySelectorAll<HTMLButtonElement>("button[data-thumb-btn]");
+    const targetThumb = thumbElements[index];
+    if (targetThumb) {
+      const thumbRect = targetThumb.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const delta = thumbRect.left + thumbRect.width / 2 - (containerRect.left + containerRect.width / 2);
+      container.scrollTo({
+        left: container.scrollLeft + delta,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  const navigatePhoto = (direction: "left" | "right") => {
+    if (!activeGallery || activeGallery.length <= 1) return;
+    if (direction === "left") {
+      if (selectedImageIndex <= 0) return;
+      const nextIdx = selectedImageIndex - 1;
+      setSelectedImageIndex(nextIdx);
+      scrollSelectedThumbnailIntoView(nextIdx);
+    } else {
+      if (selectedImageIndex >= activeGallery.length - 1) return;
+      const nextIdx = selectedImageIndex + 1;
+      setSelectedImageIndex(nextIdx);
+      scrollSelectedThumbnailIntoView(nextIdx);
+    }
+  };
+
+  const scrollThumbnails = navigatePhoto;
+
+  useEffect(() => {
+    scrollSelectedThumbnailIntoView(selectedImageIndex);
+  }, [selectedImageIndex]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const diff = e.changedTouches[0].clientX - touchStartXRef.current;
+    if (diff > 45) {
+      // Swiped Right -> Previous image
+      setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : activeGallery.length - 1));
+    } else if (diff < -45) {
+      // Swiped Left -> Next image
+      setSelectedImageIndex((prev) => (prev < activeGallery.length - 1 ? prev + 1 : 0));
+    }
+  };
+
+  const colorThumbTrackRef = useRef<HTMLDivElement>(null);
+
+  const scrollSelectedColorIntoView = (index: number) => {
+    if (!colorThumbTrackRef.current) return;
+    const container = colorThumbTrackRef.current;
+    const cardElements = container.querySelectorAll<HTMLButtonElement>("button[data-color-btn]");
+    const targetCard = cardElements[index];
+    if (targetCard) {
+      const cardRect = targetCard.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      const delta = cardRect.left + cardRect.width / 2 - (containerRect.left + containerRect.width / 2);
+      container.scrollTo({
+        left: container.scrollLeft + delta,
+        behavior: "smooth",
+      });
+    }
+  };
+
 
   // Available Colors list (from colorOptions, variants, or colors)
   const availableColors: ProductColor[] = useMemo(() => {
@@ -94,6 +174,62 @@ export default function ProductPage() {
     return [{ name: "Standard", hex: "#111111", images: [] }];
   }, [product]);
 
+  const getColorThumbnail = (color: ProductColor): string => {
+    // 1. If this color has dedicated images, ALWAYS use its primary angle photo!
+    if (color.images && color.images.length > 0) {
+      const first = color.images[0];
+      const u = typeof first === "string" ? first : first?.url;
+      if (u) return u;
+    }
+
+    // 2. If variant has dedicated images, use variant image
+    const matchedVar = product?.variants?.find(
+      (v) => v.color.toLowerCase() === color.name.toLowerCase() && v.images && v.images.length > 0
+    );
+    if (matchedVar?.images?.[0]) {
+      const u = typeof matchedVar.images[0] === "string" ? matchedVar.images[0] : matchedVar.images[0]?.url;
+      if (u) return u;
+    }
+
+    // 3. Fallback to product primary image
+    return product?.image || "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&fit=crop";
+  };
+
+  const currentColorIndex = useMemo(() => {
+    return availableColors.findIndex(
+      (c) => c.name.toLowerCase() === selectedColor.toLowerCase()
+    );
+  }, [availableColors, selectedColor]);
+
+  const isLeftDisabled = currentColorIndex <= 0;
+  const isRightDisabled = currentColorIndex >= availableColors.length - 1 || currentColorIndex === -1;
+
+  const navigateVariant = (direction: "left" | "right") => {
+    if (!availableColors || availableColors.length <= 1) return;
+
+    if (direction === "left") {
+      if (currentColorIndex <= 0) return;
+      const nextIndex = currentColorIndex - 1;
+      const nextColor = availableColors[nextIndex];
+      if (nextColor) {
+        setSelectedColor(nextColor.name);
+        setSelectedImageIndex(0);
+        scrollSelectedColorIntoView(nextIndex);
+      }
+    } else {
+      if (currentColorIndex >= availableColors.length - 1) return;
+      const nextIndex = currentColorIndex + 1;
+      const nextColor = availableColors[nextIndex];
+      if (nextColor) {
+        setSelectedColor(nextColor.name);
+        setSelectedImageIndex(0);
+        scrollSelectedColorIntoView(nextIndex);
+      }
+    }
+  };
+
+  const scrollColorThumbs = navigateVariant;
+
   // Available Sizes list
   const availableSizes: string[] = useMemo(() => {
     if (!product) return [];
@@ -106,19 +242,65 @@ export default function ProductPage() {
     return ["Free Size"];
   }, [product]);
 
-  // Set initial selected color and size
+  // Set initial selected color and size (supporting ?color=... from product card click)
   useEffect(() => {
-    if (product) {
-      if (availableColors.length > 0 && !selectedColor) {
-        setSelectedColor(availableColors[0].name);
+    if (product && availableColors.length > 0) {
+      if (initialColorQuery) {
+        const found = availableColors.find(
+          (c) => c.name.toLowerCase() === initialColorQuery.toLowerCase()
+        );
+        if (found) {
+          setSelectedColor(found.name);
+          setSelectedImageIndex(0);
+          return;
+        }
       }
-      if (availableSizes.length > 0 && !selectedSize) {
-        setSelectedSize(availableSizes[0]);
+      if (!selectedColor) {
+        setSelectedColor(availableColors[0].name);
+        setSelectedImageIndex(0);
       }
     }
-  }, [product, availableColors, availableSizes, selectedColor, selectedSize]);
+  }, [product, availableColors, initialColorQuery]);
 
-  // Active color gallery images (switches dynamically based on color)
+  // Helper for size-specific stock in current color
+  const getSizeStock = (size: string): number => {
+    if (!product?.variants || product.variants.length === 0) return product?.stock ?? 50;
+    const v = product.variants.find(
+      (item) =>
+        item.color.toLowerCase() === selectedColor.toLowerCase() &&
+        item.size.toLowerCase() === size.toLowerCase() &&
+        item.isActive !== false
+    );
+    return v ? v.stock : 0;
+  };
+
+  useEffect(() => {
+    if (product && availableSizes.length > 0) {
+      const currentStock = selectedSize ? getSizeStock(selectedSize) : 0;
+      // Automatically default to the first available in-stock size
+      if (!selectedSize || currentStock <= 0) {
+        const firstInStock = availableSizes.find((s) => getSizeStock(s) > 0);
+        if (firstInStock) {
+          setSelectedSize(firstInStock);
+        } else if (!selectedSize) {
+          setSelectedSize(availableSizes[0]);
+        }
+      }
+    }
+  }, [product, availableSizes, selectedColor, selectedSize]);
+
+  // Keep selected color thumbnail centered in the variant strip
+  useEffect(() => {
+    if (!selectedColor || !colorThumbTrackRef.current) return;
+    const currentIndex = availableColors.findIndex(
+      (c) => c.name.toLowerCase() === selectedColor.toLowerCase()
+    );
+    if (currentIndex >= 0) {
+      scrollSelectedColorIntoView(currentIndex);
+    }
+  }, [selectedColor, availableColors]);
+
+  // Active gallery images (guarantees primary photo is #1, supports dedicated color photos)
   const activeGallery: string[] = useMemo(() => {
     if (!product) return [];
 
@@ -129,16 +311,37 @@ export default function ProductPage() {
         .filter(Boolean);
     };
 
-    // 1. Check if active color has dedicated images in colorOptions
+    // Primary photo from product catalog
+    const primaryImgUrl = product.image ? product.image.trim() : "";
+
+    // Main product gallery photos (from "Product Image Gallery" in admin)
+    const mainImgs: string[] = [];
+    if (primaryImgUrl) mainImgs.push(primaryImgUrl);
+    if (product.images && product.images.length > 0) {
+      product.images.forEach((img) => {
+        const u = typeof img === "string" ? img : img?.url;
+        if (u && typeof u === "string" && !mainImgs.includes(u.trim())) {
+          mainImgs.push(u.trim());
+        }
+      });
+    }
+    if (product.hoverImage && typeof product.hoverImage === "string" && !mainImgs.includes(product.hoverImage.trim())) {
+      mainImgs.push(product.hoverImage.trim());
+    }
+
+    // Check if user is on the default/first color variant
+    const isFirstColor =
+      !selectedColor ||
+      (availableColors.length > 0 &&
+        selectedColor.toLowerCase() === availableColors[0].name.toLowerCase());
+
+    // Active color dedicated images
     const matchedColorOpt = product.colorOptions?.find(
       (c) => c.name.toLowerCase() === selectedColor.toLowerCase()
     );
     const colorImgs = extractUrls(matchedColorOpt?.images);
-    if (colorImgs.length > 0) {
-      return colorImgs;
-    }
 
-    // 2. Check if active color has images in variants
+    // Active variant dedicated images
     const matchedVariantWithImgs = product.variants?.find(
       (v) =>
         v.color.toLowerCase() === selectedColor.toLowerCase() &&
@@ -146,25 +349,20 @@ export default function ProductPage() {
         v.images.length > 0
     );
     const varImgs = extractUrls(matchedVariantWithImgs?.images);
-    if (varImgs.length > 0) {
-      return varImgs;
+
+    const activeColorImgs = colorImgs.length > 0 ? colorImgs : varImgs;
+
+    // When the selected color has dedicated angle photos, show that color's photos!
+    if (activeColorImgs.length > 0) {
+      return activeColorImgs;
     }
 
-    // 3. Fallback to product images list or main image
-    const imgs: string[] = [];
-    if (product.image) imgs.push(product.image);
-    if (product.images && product.images.length > 0) {
-      product.images.forEach((img) => {
-        const u = typeof img === "string" ? img : img?.url;
-        if (u && !imgs.includes(u)) imgs.push(u);
-      });
-    }
-    if (product.hoverImage && !imgs.includes(product.hoverImage)) {
-      imgs.push(product.hoverImage);
+    if (mainImgs.length > 0) {
+      return mainImgs;
     }
 
-    return imgs.length > 0 ? imgs : ["https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&fit=crop"];
-  }, [product, selectedColor]);
+    return ["https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&fit=crop"];
+  }, [product, selectedColor, availableColors]);
 
   // Reset selected image when color changes
   useEffect(() => {
@@ -192,24 +390,16 @@ export default function ProductPage() {
   const activeStock = activeVariant ? activeVariant.stock : (product?.stock ?? 50);
 
   const isStoreAvailable = product?.isAvailable !== false;
-  const isOutOfStock = !isStoreAvailable || activeStock <= 0;
+  const matchedColorOpt = availableColors.find(
+    (c) => c.name.toLowerCase() === selectedColor.toLowerCase()
+  );
+  const isColorAvailable = matchedColorOpt ? matchedColorOpt.isAvailable !== false : true;
+  const isOutOfStock = !isStoreAvailable || !isColorAvailable || activeStock <= 0;
   const isLowStock = !isOutOfStock && activeStock <= (product?.lowStockThreshold || 5);
 
   const productId = product?._id || product?.id || "";
   const inWishlist = isInWishlist(productId);
   const inCart = isInCart(productId, selectedSize, selectedColor, activeVariant?._id);
-
-  // Helper for size-specific stock in current color
-  const getSizeStock = (size: string): number => {
-    if (!product?.variants || product.variants.length === 0) return product?.stock ?? 50;
-    const v = product.variants.find(
-      (item) =>
-        item.color.toLowerCase() === selectedColor.toLowerCase() &&
-        item.size.toLowerCase() === size.toLowerCase() &&
-        item.isActive !== false
-    );
-    return v ? v.stock : 0;
-  };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!mainImageRef.current) return;
@@ -246,17 +436,24 @@ export default function ProductPage() {
       return;
     }
     const colorObj = availableColors.find((c) => c.name.toLowerCase() === selectedColor.toLowerCase());
-    for (let i = 0; i < quantity; i++) {
-      addItem(product, selectedSize, selectedColor, {
-        variantId: activeVariant?._id,
-        sku: displaySku,
-        price: displayPrice,
-        image: activeGallery[selectedImageIndex] || activeGallery[0] || product.image,
-        stock: activeStock,
-        colorCode: colorObj?.hex,
-      });
+    const buyNowPayload = {
+      product,
+      quantity,
+      selectedSize,
+      selectedColor,
+      colorCode: colorObj?.hex,
+      variantId: activeVariant?._id,
+      sku: displaySku,
+      price: displayPrice,
+      image: activeGallery[selectedImageIndex] || activeGallery[0] || product.image,
+      stock: activeStock,
+    };
+    try {
+      sessionStorage.setItem("noir-buynow", JSON.stringify(buyNowPayload));
+    } catch (e) {
+      console.error("Failed to store buy now item in session", e);
     }
-    router.push("/checkout");
+    router.push("/checkout?buyNow=true");
   };
 
   const handleToggleWishlist = () => {
@@ -276,8 +473,8 @@ export default function ProductPage() {
       <SmoothScrollProvider>
         <CursorFollower />
         <Navbar />
-        <main className="min-h-screen bg-black pt-32 pb-20 flex items-center justify-center">
-          <Loader2 size={36} className="animate-spin text-[#ff6b00]" />
+        <main className="min-h-screen bg-black pt-24 sm:pt-32 pb-20">
+          <ProductDetailSkeleton />
         </main>
         <Footer />
       </SmoothScrollProvider>
@@ -312,58 +509,64 @@ export default function ProductPage() {
       <SearchModal />
       <ToastContainer />
 
-      <main className="min-h-screen bg-black pt-24 pb-16 sm:pt-32">
+      <main className="min-h-screen bg-[#f8f7f2] dark:bg-black text-neutral-900 dark:text-white pt-24 pb-16 sm:pt-32 transition-colors duration-300">
         <div className="mx-auto max-w-[1600px] px-5 sm:px-6 md:px-8">
           {/* Breadcrumb */}
           <motion.div
-            className="mb-6 flex items-center gap-2 text-xs text-white/30 sm:mb-8"
+            className="mb-6 flex items-center gap-2 text-xs text-neutral-500 dark:text-white/40 sm:mb-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <Link href="/" className="hover:text-white transition-colors">Home</Link>
+            <Link href="/" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Home</Link>
             <span>/</span>
-            <Link href="/shop" className="hover:text-white transition-colors">Shop</Link>
+            <Link href="/shop" className="hover:text-neutral-900 dark:hover:text-white transition-colors">Shop</Link>
             <span>/</span>
-            <span className="text-white/40">{product.category}</span>
+            <span className="text-neutral-500 dark:text-white/40">{product.category}</span>
             <span>/</span>
-            <span className="text-white/80 font-medium truncate max-w-xs">{product.name}</span>
+            <span className="text-neutral-800 dark:text-white/80 font-medium truncate max-w-xs">{product.name}</span>
           </motion.div>
 
           {/* Product Hero Grid */}
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
             
             {/* Left: Interactive Media Gallery (7 cols on desktop) */}
-            <div className="lg:col-span-7 flex flex-col-reverse sm:flex-row gap-4">
+            <div className="lg:col-span-7 flex flex-col gap-4">
               
-              {/* Thumbnail strip */}
-              {activeGallery.length > 1 && (
-                <div className="flex sm:flex-col gap-3 overflow-x-auto sm:overflow-y-auto sm:max-h-[640px] pb-2 sm:pb-0 scrollbar-thin">
-                  {activeGallery.map((imgUrl, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setSelectedImageIndex(idx)}
-                      className={`relative shrink-0 h-20 w-16 sm:h-24 sm:w-20 rounded-xl overflow-hidden border-2 transition-all ${
-                        selectedImageIndex === idx
-                          ? "border-[#ff6b00] ring-2 ring-[#ff6b00]/30 scale-95"
-                          : "border-white/10 opacity-60 hover:opacity-100 hover:border-white/30"
-                      }`}
-                    >
-                      <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="h-full w-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Main Image with Magnifier Zoom */}
-              <div className="flex-1 relative">
+              {/* Main Image with Interactive Horizontal Swipe, Top Story Segments & Zoom */}
+              <div className="relative w-full">
                 <div
                   ref={mainImageRef}
                   onMouseEnter={() => setIsZoomed(true)}
                   onMouseLeave={() => setIsZoomed(false)}
                   onMouseMove={handleMouseMove}
-                  className="relative aspect-[3/4] max-h-[680px] w-full overflow-hidden rounded-2xl bg-[#0c0c0c] border border-white/[0.08] cursor-crosshair group select-none"
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={handleTouchEnd}
+                  className="relative aspect-[3/4] max-h-[680px] w-full overflow-hidden rounded-2xl bg-[#0c0c0c] border border-white/[0.1] cursor-crosshair group select-none shadow-2xl"
                 >
+                  {/* Top Interactive Segment Indicators (Dashes) */}
+                  {activeGallery.length > 1 && (
+                    <div className="absolute top-3 inset-x-3 z-30 flex items-center gap-1.5 pointer-events-auto">
+                      {activeGallery.map((_, sIdx) => (
+                        <button
+                          key={sIdx}
+                          type="button"
+                          onClick={() => setSelectedImageIndex(sIdx)}
+                          aria-label={`Go to photo ${sIdx + 1}`}
+                          className="h-1.5 flex-1 rounded-full cursor-pointer py-1 -my-1 group/seg"
+                        >
+                          <div
+                            className={`h-full w-full rounded-full transition-all duration-200 ${
+                              sIdx === selectedImageIndex
+                                ? "bg-[#ff6b00] shadow-[0_0_10px_rgba(255,107,0,0.9)] scale-y-125"
+                                : "bg-white/35 group-hover/seg:bg-white/70 backdrop-blur-sm"
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <img
                     src={currentMainImage}
                     alt={product.name}
@@ -380,7 +583,7 @@ export default function ProductPage() {
                   />
 
                   {/* Top Badges */}
-                  <div className="absolute top-4 left-4 flex flex-col gap-2 pointer-events-none">
+                  <div className="absolute top-8 left-4 flex flex-col gap-2 pointer-events-none z-20">
                     {isOutOfStock ? (
                       <span className="rounded-full bg-red-950/90 px-3.5 py-1 text-[10px] font-bold tracking-widest text-red-300 uppercase border border-red-500/40 backdrop-blur-md shadow-lg">
                         Out of Stock
@@ -397,31 +600,81 @@ export default function ProductPage() {
                     )}
                   </div>
 
-                  {/* Previous / Next buttons */}
+                  {/* Photo Counter Badge */}
                   {activeGallery.length > 1 && (
-                    <>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : activeGallery.length - 1));
-                        }}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/60 border border-white/15 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/90 hover:scale-110"
-                      >
-                        <ChevronLeft size={20} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedImageIndex((prev) => (prev < activeGallery.length - 1 ? prev + 1 : 0));
-                        }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/60 border border-white/15 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/90 hover:scale-110"
-                      >
-                        <ChevronRight size={20} />
-                      </button>
-                    </>
+                    <div className="absolute bottom-3 right-3 z-30 pointer-events-none">
+                      <span className="text-[11px] font-bold font-mono px-3 py-1 rounded-full bg-black/85 backdrop-blur-md border border-white/20 text-white shadow-xl flex items-center gap-1.5">
+                        <span className="text-[#ff6b00] font-extrabold">Photo {selectedImageIndex + 1}</span>
+                        <span className="text-white/40">/</span>
+                        <span>{activeGallery.length}</span>
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
+
+              {/* Horizontal Scrollable Thumbnails Strip with Box-Type Navigation Buttons */}
+              {activeGallery.length > 1 && (
+                <div className="relative flex items-center gap-2 mt-1">
+                  {/* Left Box-Type Navigation Button */}
+                  <button
+                    type="button"
+                    disabled={selectedImageIndex <= 0}
+                    onClick={() => navigatePhoto("left")}
+                    className={`h-11 w-11 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center transition-all shrink-0 z-10 border ${
+                      selectedImageIndex <= 0
+                        ? "opacity-25 cursor-not-allowed pointer-events-none bg-neutral-100 dark:bg-neutral-900/60 text-neutral-400 dark:text-neutral-600 border-neutral-200 dark:border-white/5 scale-95 shadow-none"
+                        : "bg-white dark:bg-neutral-800 text-neutral-800 dark:text-white border-neutral-300 dark:border-white/20 shadow-md hover:bg-[#ff6b00] hover:text-black dark:hover:bg-[#ff6b00] dark:hover:text-black hover:border-[#ff6b00] active:scale-95 cursor-pointer"
+                    }`}
+                    aria-label="Previous Photo"
+                    title={selectedImageIndex <= 0 ? "No previous photo" : "Previous Photo (मागील फोटो)"}
+                  >
+                    <ChevronLeft size={22} strokeWidth={2.2} />
+                  </button>
+
+                  {/* Scrollable Thumbnails Track */}
+                  <div
+                    ref={thumbnailScrollRef}
+                    className="flex-1 flex gap-2.5 overflow-x-auto scroll-smooth py-1 px-0.5 no-scrollbar select-none"
+                    style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                  >
+                    {activeGallery.map((imgUrl, idx) => (
+                      <button
+                        key={idx}
+                        data-thumb-btn
+                        type="button"
+                        onClick={() => setSelectedImageIndex(idx)}
+                        className={`relative shrink-0 h-20 w-16 sm:h-22 sm:w-20 rounded-xl overflow-hidden border-2 transition-all group cursor-pointer ${
+                          selectedImageIndex === idx
+                            ? "border-[#ff6b00] ring-2 ring-[#ff6b00]/40 shadow-[0_0_15px_rgba(255,107,0,0.35)] scale-95"
+                            : "border-neutral-300 dark:border-white/15 opacity-60 hover:opacity-100 hover:border-neutral-500 dark:hover:border-white/40"
+                        }`}
+                      >
+                        <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
+                        <span className="absolute bottom-1 right-1 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-black/80 text-white border border-white/10">
+                          #{idx + 1}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Right Box-Type Navigation Button */}
+                  <button
+                    type="button"
+                    disabled={selectedImageIndex >= activeGallery.length - 1}
+                    onClick={() => navigatePhoto("right")}
+                    className={`h-11 w-11 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center transition-all shrink-0 z-10 border ${
+                      selectedImageIndex >= activeGallery.length - 1
+                        ? "opacity-25 cursor-not-allowed pointer-events-none bg-neutral-100 dark:bg-neutral-900/60 text-neutral-400 dark:text-neutral-600 border-neutral-200 dark:border-white/5 scale-95 shadow-none"
+                        : "bg-white dark:bg-neutral-800 text-neutral-800 dark:text-white border-neutral-300 dark:border-white/20 shadow-md hover:bg-[#ff6b00] hover:text-black dark:hover:bg-[#ff6b00] dark:hover:text-black hover:border-[#ff6b00] active:scale-95 cursor-pointer"
+                    }`}
+                    aria-label="Next Photo"
+                    title={selectedImageIndex >= activeGallery.length - 1 ? "No next photo" : "Next Photo (पुढील फोटो)"}
+                  >
+                    <ChevronRight size={22} strokeWidth={2.2} />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Right: Product Details & Variant Controls (5 cols) */}
@@ -430,17 +683,17 @@ export default function ProductPage() {
                 {/* Brand & Category */}
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <span className="text-[11px] font-bold tracking-[0.25em] text-[#ff6b00] uppercase">
-                    {product.brand || "NOIR STUDIO"} · {product.category}
+                    {product.brand || "Maitri Men's Wear"} · {product.category}
                   </span>
                   {displaySku && (
-                    <span className="text-[10px] font-mono text-white/30 tracking-wider">
+                    <span className="text-[10px] font-mono text-neutral-400 dark:text-white/30 tracking-wider">
                       SKU: {displaySku}
                     </span>
                   )}
                 </div>
 
                 {/* Title */}
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-light tracking-tight text-white mb-3 leading-snug">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-light tracking-tight text-neutral-900 dark:text-white mb-3 leading-snug">
                   {product.name}
                 </h1>
 
@@ -451,82 +704,159 @@ export default function ProductPage() {
                       <Star key={s} size={14} className="fill-[#ff6b00] text-[#ff6b00]" />
                     ))}
                   </div>
-                  <span className="text-xs text-white/50 font-medium">4.8 · 142 Verified Reviews</span>
+                  <span className="text-xs text-neutral-600 dark:text-white/50 font-medium">4.8 · 142 Verified Reviews</span>
                 </div>
 
                 {/* Dynamic Price Display */}
-                <div className="mb-6 rounded-2xl border border-white/[0.08] bg-[#0c0c0c]/80 p-5 backdrop-blur-sm">
+                <div className="mb-6 rounded-2xl border border-neutral-200 dark:border-white/[0.08] bg-white dark:bg-[#0c0c0c]/80 p-5 backdrop-blur-sm shadow-xs">
                   <div className="flex items-baseline gap-3">
-                    <span className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+                    <span className="text-3xl sm:text-4xl font-bold text-neutral-950 dark:text-white tracking-tight">
                       ₹{displayPrice.toLocaleString()}
                     </span>
                     {displayMrp && displayMrp > displayPrice && (
                       <>
-                        <span className="text-lg text-white/30 line-through">
+                        <span className="text-lg text-neutral-400 dark:text-white/30 line-through">
                           ₹{displayMrp.toLocaleString()}
                         </span>
-                        <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-bold text-emerald-400">
+                        <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                           Save {displayDiscount}%
                         </span>
                       </>
                     )}
                   </div>
-                  <p className="mt-1 text-[11px] text-white/40">Inclusive of all taxes & duties</p>
+                  <p className="mt-1 text-[11px] text-neutral-500 dark:text-white/40">Inclusive of all taxes & duties</p>
 
                   {/* Stock Status Alert */}
-                  <div className="mt-3 pt-3 border-t border-white/[0.06] flex items-center gap-2">
-                    {isOutOfStock ? (
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-red-400">
+                  <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-white/[0.06] flex items-center gap-2">
+                    {!isColorAvailable ? (
+                      <div className="flex items-center gap-2 text-xs font-semibold text-red-500 dark:text-red-400 bg-red-500/10 border border-red-500/30 px-3 py-1.5 rounded-xl">
+                        <AlertCircle size={15} />
+                        <span>This color ({selectedColor}) is currently Not Available (Out of Stock)</span>
+                      </div>
+                    ) : isOutOfStock ? (
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-red-500 dark:text-red-400">
                         <AlertCircle size={14} /> Currently Out of Stock
                       </div>
                     ) : isLowStock ? (
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-400">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-500 dark:text-amber-400">
                         <Zap size={14} className="animate-bounce" /> Hurry, only {activeStock} left in stock!
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                         <Check size={14} /> In Stock · Ready to Dispatch
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Color Selector */}
+                {/* Color Selector with Real Photo Thumbnails (Flipkart/Myntra Style matching Screenshot) */}
                 {availableColors.length > 0 && (
                   <div className="mb-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <label className="text-xs font-bold uppercase tracking-wider text-white/60">
-                        Color: <span className="text-white font-semibold">{selectedColor}</span>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <label className="text-sm font-semibold text-neutral-800 dark:text-white flex items-center gap-1.5">
+                        <span className="text-neutral-500 dark:text-white/70">Selected Color:</span>
+                        <span className="text-neutral-950 dark:text-white font-bold">{selectedColor}</span>
                       </label>
-                      <span className="text-[11px] text-[#ff6b00]/80">
-                        {availableColors.length} available
+                      <span className="text-xs text-[#ff8533] font-medium">
+                        {availableColors.length} colors available
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-3">
-                      {availableColors.map((color) => {
-                        const isSelected = selectedColor.toLowerCase() === color.name.toLowerCase();
-                        return (
-                          <button
-                            key={color.name}
-                            type="button"
-                            onClick={() => setSelectedColor(color.name)}
-                            className={`group flex items-center gap-2 rounded-xl border px-3.5 py-2 transition-all ${
-                              isSelected
-                                ? "border-[#ff6b00] bg-[#ff6b00]/10 ring-1 ring-[#ff6b00]"
-                                : "border-white/10 bg-white/[0.02] hover:border-white/30 hover:bg-white/[0.05]"
-                            }`}
-                          >
-                            <span
-                              className="h-4 w-4 rounded-full border border-white/20 shadow-sm transition-transform group-hover:scale-110"
-                              style={{ backgroundColor: color.hex }}
-                            />
-                            <span className={`text-xs font-medium ${isSelected ? "text-white" : "text-white/70"}`}>
-                              {color.name}
-                            </span>
-                          </button>
-                        );
-                      })}
+                    {/* Horizontal Scrollable Color Photo Cards Strip (Flipkart/Myntra style variant selector) */}
+                    <div className="relative flex items-center gap-2 group/colorstrip">
+                      {/* Navigate Left Button - disabled when at first variant */}
+                      {availableColors.length > 1 && (
+                        <button
+                          type="button"
+                          disabled={isLeftDisabled}
+                          onClick={() => navigateVariant("left")}
+                          className={`h-8 w-8 rounded-xl flex items-center justify-center transition-all shrink-0 z-20 ${
+                            isLeftDisabled
+                              ? "bg-neutral-100 dark:bg-neutral-900/60 text-neutral-300 dark:text-neutral-600 border border-neutral-200 dark:border-white/10 shadow-none cursor-not-allowed pointer-events-none scale-90"
+                              : "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white border border-neutral-300 dark:border-white/20 shadow-md hover:bg-[#ff6b00] hover:text-black dark:hover:bg-[#ff6b00] dark:hover:text-black hover:border-[#ff6b00] hover:scale-105 active:scale-90 cursor-pointer"
+                          }`}
+                          title={isLeftDisabled ? "No previous color" : "Previous Color Variant"}
+                          aria-label="Previous Color Variant"
+                        >
+                          <ChevronLeft size={16} strokeWidth={2.5} />
+                        </button>
+                      )}
+
+                      {/* Horizontal Track of Color Photos */}
+                      <div
+                        ref={colorThumbTrackRef}
+                        className="flex-1 flex items-center gap-3 overflow-x-auto scroll-smooth py-2 px-1 no-scrollbar select-none"
+                        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                      >
+                        {availableColors.map((color) => {
+                          const isSelected = selectedColor.toLowerCase() === color.name.toLowerCase();
+                          const isColorAvail = color.isAvailable !== false;
+                          const thumbUrl = getColorThumbnail(color);
+
+                          return (
+                            <button
+                              key={color.name}
+                              data-color-btn
+                              type="button"
+                              onClick={() => {
+                                setSelectedColor(color.name);
+                                setSelectedImageIndex(0);
+                              }}
+                              className={`group/cbtn relative shrink-0 rounded-2xl transition-all p-1 bg-neutral-100 dark:bg-[#161616] cursor-pointer ${
+                                isSelected
+                                  ? "border-2 border-neutral-950 dark:border-white ring-2 ring-neutral-950/20 dark:ring-white/40 shadow-lg scale-[1.04]"
+                                  : isColorAvail
+                                  ? "border border-neutral-300 dark:border-white/20 hover:border-neutral-600 dark:hover:border-white/60 hover:scale-[1.02]"
+                                  : "border border-red-500/40 opacity-50 hover:opacity-80"
+                              }`}
+                              style={{ width: "76px", height: "96px" }}
+                              title={`${color.name} ${!isColorAvail ? "(Out of Stock)" : ""}`}
+                            >
+                              <div className="relative w-full h-full rounded-xl overflow-hidden bg-neutral-200 dark:bg-black/60 flex items-center justify-center">
+                                <img
+                                  src={thumbUrl}
+                                  alt={color.name}
+                                  className="w-full h-full object-cover group-hover/cbtn:scale-108 transition-transform duration-300"
+                                />
+
+                                {/* Mini Color Dot swatch */}
+                                <span
+                                  className="absolute top-1.5 left-1.5 h-3.5 w-3.5 rounded-full border border-white/60 shadow-md"
+                                  style={{ backgroundColor: color.hex }}
+                                  title={color.name}
+                                />
+
+                                {/* Out of Stock diagonal badge */}
+                                {!isColorAvail && (
+                                  <div className="absolute inset-0 bg-black/80 backdrop-blur-[1px] flex items-center justify-center p-1">
+                                    <span className="text-[8px] font-black uppercase bg-red-600 text-white px-1.5 py-0.5 rounded leading-tight text-center">
+                                      OUT OF STOCK
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Navigate Right Button - disabled when at last variant */}
+                      {availableColors.length > 1 && (
+                        <button
+                          type="button"
+                          disabled={isRightDisabled}
+                          onClick={() => navigateVariant("right")}
+                          className={`h-8 w-8 rounded-xl flex items-center justify-center transition-all shrink-0 z-20 ${
+                            isRightDisabled
+                              ? "bg-neutral-100 dark:bg-neutral-900/60 text-neutral-300 dark:text-neutral-600 border border-neutral-200 dark:border-white/10 shadow-none cursor-not-allowed pointer-events-none scale-90"
+                              : "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white border border-neutral-300 dark:border-white/20 shadow-md hover:bg-[#ff6b00] hover:text-black dark:hover:bg-[#ff6b00] dark:hover:text-black hover:border-[#ff6b00] hover:scale-105 active:scale-90 cursor-pointer"
+                          }`}
+                          title={isRightDisabled ? "No next color" : "Next Color Variant"}
+                          aria-label="Next Color Variant"
+                        >
+                          <ChevronRight size={16} strokeWidth={2.5} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -535,8 +865,8 @@ export default function ProductPage() {
                 {availableSizes.length > 0 && (
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-3">
-                      <label className="text-xs font-bold uppercase tracking-wider text-white/60">
-                        Select Size: <span className="text-white font-semibold">{selectedSize}</span>
+                      <label className="text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-white/60">
+                        Select Size: <span className="text-neutral-900 dark:text-white font-semibold">{selectedSize}</span>
                       </label>
                       <button
                         type="button"
@@ -558,19 +888,44 @@ export default function ProductPage() {
                             key={size}
                             type="button"
                             disabled={isSizeOut}
-                            onClick={() => setSelectedSize(size)}
-                            className={`relative flex flex-col items-center justify-center rounded-xl py-2.5 px-2 border transition-all text-xs font-medium ${
-                              isSelected
-                                ? "border-[#ff6b00] bg-[#ff6b00] text-black font-bold shadow-[0_0_15px_rgba(255,107,0,0.3)]"
-                                : isSizeOut
-                                ? "border-white/5 bg-white/[0.01] text-white/20 cursor-not-allowed line-through"
-                                : "border-white/10 bg-white/[0.02] text-white/70 hover:border-white/30 hover:text-white"
+                            onClick={() => {
+                              if (!isSizeOut) setSelectedSize(size);
+                            }}
+                            className={`relative flex flex-col items-center justify-center rounded-xl py-2 px-2 border transition-all text-xs font-medium select-none ${
+                              isSizeOut
+                                ? isSelected
+                                  ? "border-2 border-red-500/80 bg-red-950/20 dark:bg-red-950/40 shadow-sm cursor-not-allowed"
+                                  : "border border-dashed border-neutral-300 dark:border-white/15 bg-neutral-100/70 dark:bg-white/[0.02] cursor-not-allowed opacity-75"
+                                : isSelected
+                                ? "border-2 border-[#ff6b00] bg-[#ff6b00] text-black font-extrabold shadow-[0_0_15px_rgba(255,107,0,0.35)] scale-[1.04] cursor-pointer"
+                                : "border-neutral-300 dark:border-white/15 bg-white dark:bg-white/[0.03] text-neutral-800 dark:text-white/80 hover:border-[#ff6b00] hover:text-[#ff6b00] hover:scale-105 shadow-xs cursor-pointer"
                             }`}
+                            title={isSizeOut ? `${size} (Sold Out)` : `${size} (${stockForThisSize} in stock)`}
                           >
-                            <span>{size}</span>
-                            {isSizeOut && (
-                              <span className="text-[9px] text-red-400 font-normal no-underline mt-0.5">Sold out</span>
-                            )}
+                            <span
+                              className={`text-xs font-bold leading-tight ${
+                                isSizeOut
+                                  ? "text-neutral-400 dark:text-neutral-500 line-through decoration-red-500/70 decoration-1.5"
+                                  : isSelected
+                                  ? "text-black font-black text-sm"
+                                  : "text-neutral-800 dark:text-white"
+                              }`}
+                            >
+                              {size}
+                            </span>
+                            {isSizeOut ? (
+                              <span className="text-[8.5px] font-black uppercase tracking-wider text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/70 border border-red-200 dark:border-red-900/50 px-1.5 py-0.5 rounded mt-1 no-underline shadow-xs">
+                                Sold out
+                              </span>
+                            ) : isSelected ? (
+                              <span className="text-[7.5px] font-black uppercase tracking-widest text-black/75 mt-0.5">
+                                Selected
+                              </span>
+                            ) : stockForThisSize <= 3 && stockForThisSize > 0 ? (
+                              <span className="text-[8px] font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+                                {stockForThisSize} left
+                              </span>
+                            ) : null}
                           </button>
                         );
                       })}
@@ -581,21 +936,21 @@ export default function ProductPage() {
                 {/* Quantity & CTA Buttons */}
                 <div className="space-y-4 mb-8">
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center rounded-xl border border-white/10 bg-white/[0.02] p-1">
+                    <div className="flex items-center rounded-xl border border-neutral-300 dark:border-white/10 bg-white dark:bg-white/[0.02] p-1 shadow-xs">
                       <button
                         type="button"
                         disabled={isOutOfStock || quantity <= 1}
                         onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                        className="h-9 w-9 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 disabled:opacity-20"
+                        className="h-9 w-9 rounded-lg flex items-center justify-center text-neutral-700 dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/10 disabled:opacity-20 cursor-pointer"
                       >
                         -
                       </button>
-                      <span className="w-10 text-center text-sm font-semibold text-white">{quantity}</span>
+                      <span className="w-10 text-center text-sm font-semibold text-neutral-900 dark:text-white">{quantity}</span>
                       <button
                         type="button"
                         disabled={isOutOfStock || quantity >= activeStock}
                         onClick={() => setQuantity((q) => Math.min(activeStock, q + 1))}
-                        className="h-9 w-9 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 disabled:opacity-20"
+                        className="h-9 w-9 rounded-lg flex items-center justify-center text-neutral-700 dark:text-white/60 hover:text-neutral-950 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-white/10 disabled:opacity-20 cursor-pointer"
                       >
                         +
                       </button>
@@ -605,22 +960,33 @@ export default function ProductPage() {
                     <button
                       type="button"
                       disabled={isOutOfStock}
-                      onClick={handleAddToCart}
-                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-3.5 text-xs font-bold tracking-wider uppercase transition-all duration-300 ${
+                      onClick={() => {
+                        if (inCart) {
+                          router.push("/cart");
+                        } else {
+                          handleAddToCart();
+                        }
+                      }}
+                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-3.5 text-xs font-bold tracking-wider uppercase transition-all duration-300 cursor-pointer ${
                         isOutOfStock
-                          ? "bg-white/5 text-white/30 border border-white/10 cursor-not-allowed"
+                          ? "bg-neutral-200 dark:bg-white/5 text-neutral-400 dark:text-white/30 border border-neutral-300 dark:border-white/10 cursor-not-allowed"
                           : inCart
-                          ? "bg-emerald-500/20 border border-emerald-500/50 text-emerald-300"
+                          ? "bg-[#062e1e]/80 dark:bg-emerald-950/60 border border-emerald-500/60 text-emerald-400 dark:text-emerald-300 shadow-md hover:bg-emerald-900/60 hover:border-emerald-400"
                           : "btn-pill btn-pill-gold shadow-lg"
                       }`}
+                      title={inCart ? "Item in bag. Click to view bag." : "Add to Cart"}
                     >
-                      {inCart ? (
+                      {isOutOfStock ? (
                         <>
-                          <Check size={16} /> Added to Bag
+                          <AlertCircle size={16} /> {!isColorAvailable ? "Color Out of Stock" : "Out of Stock"}
+                        </>
+                      ) : inCart ? (
+                        <>
+                          <Check size={16} className="text-emerald-400" /> ADDED TO BAG
                         </>
                       ) : (
                         <>
-                          <ShoppingBag size={16} /> Add to Cart
+                          <ShoppingBag size={16} /> ADD TO CART
                         </>
                       )}
                     </button>
@@ -629,10 +995,10 @@ export default function ProductPage() {
                     <button
                       type="button"
                       onClick={handleToggleWishlist}
-                      className={`h-12 w-12 shrink-0 rounded-xl border flex items-center justify-center transition-all ${
+                      className={`h-12 w-12 shrink-0 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-xs ${
                         inWishlist
                           ? "border-[#ff6b00] bg-[#ff6b00]/10 text-[#ff6b00]"
-                          : "border-white/10 text-white/50 hover:border-white/30 hover:text-white"
+                          : "border-neutral-300 dark:border-white/10 bg-white dark:bg-transparent text-neutral-600 dark:text-white/50 hover:border-neutral-400 dark:hover:border-white/30 hover:text-neutral-950 dark:hover:text-white"
                       }`}
                     >
                       <Heart size={18} fill={inWishlist ? "currentColor" : "none"} />
@@ -652,21 +1018,21 @@ export default function ProductPage() {
                 </div>
 
                 {/* Highlights / Trust badges */}
-                <div className="grid grid-cols-3 gap-3 border-y border-white/10 py-5">
+                <div className="grid grid-cols-3 gap-3 border-y border-neutral-200 dark:border-white/10 py-5">
                   <div className="flex flex-col items-center text-center gap-1.5">
                     <Truck size={18} className="text-[#ff6b00]" />
-                    <span className="text-[10px] font-bold text-white/80 uppercase">Free Delivery</span>
-                    <span className="text-[9px] text-white/40">Orders over ₹999</span>
+                    <span className="text-[10px] font-bold text-neutral-800 dark:text-white/80 uppercase">Free Delivery</span>
+                    <span className="text-[9px] text-neutral-500 dark:text-white/40">Orders over ₹999</span>
                   </div>
                   <div className="flex flex-col items-center text-center gap-1.5">
                     <Shield size={18} className="text-[#ff6b00]" />
-                    <span className="text-[10px] font-bold text-white/80 uppercase">100% Genuine</span>
-                    <span className="text-[9px] text-white/40">Direct from Studio</span>
+                    <span className="text-[10px] font-bold text-neutral-800 dark:text-white/80 uppercase">100% Genuine</span>
+                    <span className="text-[9px] text-neutral-500 dark:text-white/40">Direct from Studio</span>
                   </div>
                   <div className="flex flex-col items-center text-center gap-1.5">
                     <RotateCcw size={18} className="text-[#ff6b00]" />
-                    <span className="text-[10px] font-bold text-white/80 uppercase">7 Days Return</span>
-                    <span className="text-[9px] text-white/40">Hassle-free exchange</span>
+                    <span className="text-[10px] font-bold text-neutral-800 dark:text-white/80 uppercase">7 Days Return</span>
+                    <span className="text-[9px] text-neutral-500 dark:text-white/40">Hassle-free exchange</span>
                   </div>
                 </div>
               </div>
@@ -674,8 +1040,8 @@ export default function ProductPage() {
           </div>
 
           {/* Details & Specifications Tabs */}
-          <div className="mt-16 border-t border-white/10 pt-10">
-            <div className="flex gap-8 border-b border-white/10 mb-8 overflow-x-auto">
+          <div className="mt-16 border-t border-neutral-200 dark:border-white/10 pt-10">
+            <div className="flex gap-8 border-b border-neutral-200 dark:border-white/10 mb-8 overflow-x-auto">
               {(
                 [
                   { key: "details", label: "Description" },
@@ -687,10 +1053,10 @@ export default function ProductPage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`pb-4 text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
+                  className={`pb-4 text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
                     activeTab === tab.key
                       ? "border-b-2 border-[#ff6b00] text-[#ff6b00]"
-                      : "text-white/40 hover:text-white"
+                      : "text-neutral-500 dark:text-white/40 hover:text-neutral-900 dark:hover:text-white"
                   }`}
                 >
                   {tab.label}
@@ -698,10 +1064,10 @@ export default function ProductPage() {
               ))}
             </div>
 
-            <div className="max-w-4xl text-sm leading-relaxed text-white/60">
+            <div className="max-w-4xl text-sm leading-relaxed text-neutral-700 dark:text-white/60">
               {activeTab === "details" && (
                 <div className="space-y-4">
-                  <p className="text-white/80 whitespace-pre-line leading-relaxed">
+                  <p className="text-neutral-800 dark:text-white/80 whitespace-pre-line leading-relaxed">
                     {product.description ||
                       `Crafted with extraordinary precision, the ${product.name} embodies contemporary masculine elegance. Designed with supreme attention to silhouette, texture, and durability.`}
                   </p>
@@ -710,9 +1076,9 @@ export default function ProductPage() {
                   )}
                   {product.tags && product.tags.length > 0 && (
                     <div className="pt-4 flex items-center gap-2 flex-wrap">
-                      <span className="text-xs text-white/40">Tags:</span>
+                      <span className="text-xs text-neutral-500 dark:text-white/40">Tags:</span>
                       {product.tags.map((tag) => (
-                        <span key={tag} className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-[10px] text-white/60">
+                        <span key={tag} className="rounded-full bg-neutral-200/80 dark:bg-white/5 border border-neutral-300 dark:border-white/10 px-3 py-1 text-[10px] text-neutral-700 dark:text-white/60">
                           #{tag}
                         </span>
                       ))}

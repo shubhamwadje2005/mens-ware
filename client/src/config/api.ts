@@ -5,9 +5,14 @@
 
 export const getBaseUrl = (): string => {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  // Prefer environment variable unless it's a legacy localhost reference in production
+  // Guard against invalid localhost URL in production deployment
+  const isInvalidLocalhostInProd =
+    process.env.NODE_ENV === "production" &&
+    envUrl &&
+    (envUrl.includes("localhost") || envUrl.includes("127.0.0.1"));
+
   const candidate =
-    envUrl && !envUrl.includes("localhost:5000")
+    envUrl && !isInvalidLocalhostInProd
       ? envUrl
       : "https://server-mens-ware.vercel.app/api";
 

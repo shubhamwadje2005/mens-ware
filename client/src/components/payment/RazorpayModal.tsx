@@ -221,10 +221,10 @@ export default function RazorpayModal({
 
           currency: order.currency,
 
-          name: "Noir Studio",
+          name: "Maitri Men's Wear",
 
           description:
-            "Noir Studio Order Payment",
+            "Maitri Men's Wear Order Payment",
 
           order_id: order.id,
 

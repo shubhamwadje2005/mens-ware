@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import BrandLogo from "@/components/ui/BrandLogo";
 
 const footerLinks = {
   Shop: [
@@ -75,14 +77,25 @@ export default function Footer() {
         <div className="mb-14 grid grid-cols-2 gap-8 sm:mb-16 sm:gap-10 md:grid-cols-4">
           {/* Brand */}
           <div className="col-span-2 mb-4 md:col-span-1 md:mb-0">
-            <Link href="/" className="mb-4 inline-block sm:mb-6">
-              <span className="text-lg font-light tracking-[0.2em] text-white uppercase sm:text-xl sm:tracking-[0.3em]">
-                NOIR<span className="ml-1 text-[#ff6b00]">&mdash;</span>STUDIO
-              </span>
+            <Link href="/" className="mb-4 inline-flex items-center gap-3 sm:mb-6 group">
+              <div className="relative h-12 w-auto flex items-center">
+                <BrandLogo
+                  width={70}
+                  height={48}
+                  className="h-11 sm:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                />
+              </div>
+              <div className="flex flex-col justify-center">
+                <span className="text-lg font-bold tracking-[0.16em] text-white uppercase sm:text-xl group-hover:text-[#ff6b00] transition-colors leading-tight">
+                  MAITRI
+                </span>
+                <span className="text-[9.5px] tracking-[0.24em] text-[#ff6b00] font-semibold uppercase leading-tight">
+                  MEN&apos;S WEAR
+                </span>
+              </div>
             </Link>
-            <p className="mt-3 max-w-[240px] text-[12px] leading-relaxed text-white/50 sm:mt-4 sm:text-xs">
-              Redefining modern luxury through timeless design and uncompromising
-              quality.
+            <p className="mt-3 max-w-[260px] text-[12px] leading-relaxed text-white/50 sm:mt-4 sm:text-xs">
+              The Classy Men&apos;s Wear. Redefining modern luxury through timeless design, authentic elegance, and uncompromising quality.
             </p>
             {/* Social */}
             <div className="mt-5 flex gap-4 sm:mt-6">
@@ -123,7 +136,7 @@ export default function Footer() {
         {/* Bottom */}
         <div className="flex flex-col items-center justify-between gap-4 border-t border-white/[0.08] pt-8 sm:pt-10 md:flex-row">
           <p className="text-[11px] text-white/40 sm:text-xs">
-            &copy; 2026 NOIR&mdash;STUDIO. All rights reserved.
+            &copy; 2026 Maitri Men&apos;s Wear. All rights reserved.
           </p>
           <div className="flex gap-6">
             <a href="#" className="text-[11px] text-white/40 transition-all duration-300 hover:text-[#ff6b00] sm:text-xs">

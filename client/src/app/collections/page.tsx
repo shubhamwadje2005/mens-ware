@@ -7,6 +7,7 @@ import Navbar from "@/components/navbar/Navbar";
 import { useGetProductsQuery } from "@/redux/api/product.api";
 import { useGetActiveCollectionsQuery } from "@/redux/api/collection.api";
 import { PackageOpen, Loader2 } from "lucide-react";
+import { StoreCollectionsSkeleton } from "@/components/ui/StoreSkeletons";
 
 const SmoothScrollProvider = dynamic(
   () => import("@/components/layout/SmoothScrollProvider"),
@@ -90,11 +91,9 @@ export default function CollectionsPage() {
             </p>
           </motion.div>
 
-          {/* Centered Loading Spinner */}
+          {/* Loading Skeleton */}
           {isLoading && (
-            <div className="flex h-[55vh] items-center justify-center">
-              <Loader2 size={36} className="animate-spin text-[#ff6b00]" />
-            </div>
+            <StoreCollectionsSkeleton />
           )}
 
           {/* Featured Collections */}

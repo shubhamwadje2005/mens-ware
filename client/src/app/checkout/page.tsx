@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -10,7 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useOrders } from "@/context/OrderContext";
 import { useToast } from "@/context/ToastContext";
 import { MapPin, CreditCard, Truck, CheckCircle, ArrowLeft, Plus, Trash2, Loader2, AlertTriangle } from "lucide-react";
-import { Address } from "@/types";
+import { Address, CartItem } from "@/types";
 import { useCreateOrderMutation } from "@/redux/api/order.api";
 import RazorpayModal from "@/components/payment/RazorpayModal";
 
@@ -22,9 +22,33 @@ const SearchModal = dynamic(() => import("@/components/search/SearchModal"));
 
 type Step = "address" | "payment" | "confirmation";
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isBuyNow = searchParams ? searchParams.get("buyNow") === "true" : false;
   const { items, totalPrice, clearCart } = useCart();
+  const [buyNowItem, setBuyNowItem] = useState<CartItem | null>(null);
+
+  useEffect(() => {
+    if (isBuyNow && typeof window !== "undefined") {
+      try {
+        const stored = sessionStorage.getItem("noir-buynow");
+        if (stored) {
+          setBuyNowItem(JSON.parse(stored));
+        }
+      } catch {
+        setBuyNowItem(null);
+      }
+    }
+  }, [isBuyNow]);
+
+  const checkoutItems: CartItem[] = isBuyNow && buyNowItem ? [buyNowItem] : items;
+  const checkoutTotalPrice = isBuyNow && buyNowItem
+    ? (buyNowItem.price !== undefined ? buyNowItem.price : buyNowItem.product.price) * buyNowItem.quantity
+    : totalPrice;
+  const shipping = checkoutTotalPrice >= 100 ? 0 : 9.99;
+  const total = checkoutTotalPrice + shipping;
+
   const { user, isAuthenticated, addAddress, setDefaultAddress, removeAddress } = useAuth();
   const { createOrder } = useOrders();
   const { addToast } = useToast();
@@ -47,14 +71,11 @@ export default function CheckoutPage() {
     pincode: "",
   });
 
-  const shipping = totalPrice >= 100 ? 0 : 9.99;
-  const total = totalPrice + shipping;
-
   useEffect(() => {
     if (isAuthenticated && user && (!user.addresses || user.addresses.length === 0)) {
-      router.replace("/profile?tab=addresses&required=true");
+      setShowAddressForm(true);
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user]);
 
   if (!isAuthenticated) {
     return (
@@ -83,7 +104,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (isAuthenticated && (!user?.addresses || user.addresses.length === 0)) {
+  if (checkoutItems.length === 0 && step !== "confirmation") {
     return (
       <SmoothScrollProvider>
         <CursorFollower />
@@ -93,31 +114,12 @@ export default function CheckoutPage() {
         <main className="min-h-screen bg-black pt-32 pb-20 flex items-center justify-center">
           <div className="text-center px-5">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <Loader2 size={40} className="animate-spin text-[#ff6b00] mx-auto mb-4" />
-              <h1 className="text-2xl font-light text-white mb-2">Delivery Address Required</h1>
-              <p className="text-white/40 mb-6">Redirecting to Saved Addresses page to add your delivery address...</p>
-              <Link href="/profile?tab=addresses&required=true" className="btn-pill btn-pill-gold">
-                Add Delivery Address Now
-              </Link>
-            </motion.div>
-          </div>
-        </main>
-      </SmoothScrollProvider>
-    );
-  }
-
-  if (items.length === 0 && step !== "confirmation") {
-    return (
-      <SmoothScrollProvider>
-        <CursorFollower />
-        <Navbar />
-        <SearchModal />
-        <ToastContainer />
-        <main className="min-h-screen bg-black pt-32 pb-20 flex items-center justify-center">
-          <div className="text-center px-5">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <h1 className="text-3xl font-light text-white mb-3">Cart is Empty</h1>
-              <p className="text-white/40 mb-8">Add items to your cart before checkout.</p>
+              <h1 className="text-3xl font-light text-white mb-3">
+                {isBuyNow ? "No Item Selected" : "Cart is Empty"}
+              </h1>
+              <p className="text-white/40 mb-8">
+                {isBuyNow ? "Please select an item to buy before checkout." : "Add items to your cart before checkout."}
+              </p>
               <Link href="/shop" className="btn-pill btn-pill-gold">Shop Now</Link>
             </motion.div>
           </div>
@@ -126,28 +128,34 @@ export default function CheckoutPage() {
     );
   }
 
-  const handleSaveAddress = () => {
+  const handleSaveAddress = async () => {
     if (!addressForm.name || !addressForm.phone || !addressForm.addressLine1 || !addressForm.city || !addressForm.state || !addressForm.pincode) {
       addToast("Please fill all required fields", "error");
       return;
     }
-    addAddress({
+    const saved = await addAddress({
       ...addressForm,
-      isDefault: user?.addresses.length === 0,
+      isDefault: !user?.addresses || user.addresses.length === 0,
     });
     setShowAddressForm(false);
     setAddressForm({ name: "", phone: "", addressLine1: "", addressLine2: "", city: "", state: "", pincode: "" });
     addToast("Address saved");
+    if (Array.isArray(saved) && saved.length > 0) {
+      const latest = saved[saved.length - 1];
+      if (latest._id || latest.id) {
+        setSelectedAddressId(latest._id || latest.id || "");
+      }
+    }
   };
 
   const submitOrderToBackend = async (address: Address, methodStr: string, statusStr: string, paymentId?: string) => {
     try {
       setIsSubmittingOrder(true);
-      const apiItems = items.map((item) => ({
+      const apiItems = checkoutItems.map((item) => ({
         product: item.product._id || item.product.id || "",
         variantId: item.variantId,
         name: item.product.name,
-        image: item.image || item.product.image,
+        image: typeof item.image === "object" ? (item.image as any)?.url || item.product.image : (item.image || item.product.image),
         slug: item.product.slug,
         sku: item.sku,
         quantity: item.quantity,
@@ -167,8 +175,12 @@ export default function CheckoutPage() {
 
       const createdId = res._id || res.id;
       setOrderId(createdId);
-      createOrder(items, total, address, methodStr);
-      clearCart();
+      createOrder(checkoutItems, total, address, methodStr, createdId);
+      if (isBuyNow && typeof window !== "undefined") {
+        sessionStorage.removeItem("noir-buynow");
+      } else {
+        clearCart();
+      }
       setStep("confirmation");
       addToast("Order placed successfully!");
     } catch (err: any) {
@@ -182,9 +194,13 @@ export default function CheckoutPage() {
         errorMsg,
         err
       );
-      const localOrder = createOrder(items, total, address, methodStr);
+      const localOrder = createOrder(checkoutItems, total, address, methodStr);
       setOrderId(localOrder.id);
-      clearCart();
+      if (isBuyNow && typeof window !== "undefined") {
+        sessionStorage.removeItem("noir-buynow");
+      } else {
+        clearCart();
+      }
       setStep("confirmation");
       addToast("Order placed!");
     } finally {
@@ -230,8 +246,8 @@ export default function CheckoutPage() {
       <main className="min-h-screen bg-black pt-24 pb-16 sm:pt-32">
         <div className="mx-auto max-w-4xl px-5 sm:px-6">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <Link href="/cart" className="flex items-center gap-2 text-sm text-white/40 hover:text-white mb-6 transition-colors">
-              <ArrowLeft size={16} /> Back to Cart
+            <Link href={isBuyNow ? "/shop" : "/cart"} className="flex items-center gap-2 text-sm text-white/40 hover:text-white mb-6 transition-colors">
+              <ArrowLeft size={16} /> {isBuyNow ? "Back to Products" : "Back to Cart"}
             </Link>
 
             <h1 className="text-3xl font-light tracking-tight text-white sm:text-4xl mb-8">
@@ -479,7 +495,7 @@ export default function CheckoutPage() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-white/50">Subtotal</span>
-                        <span className="text-white">${totalPrice.toFixed(2)}</span>
+                        <span className="text-white">${checkoutTotalPrice.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-white/50">Shipping</span>
@@ -546,5 +562,19 @@ export default function CheckoutPage() {
         onSuccess={handleRazorpaySuccess}
       />
     </SmoothScrollProvider>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-black flex items-center justify-center">
+          <Loader2 size={36} className="animate-spin text-[#ff6b00]" />
+        </div>
+      }
+    >
+      <CheckoutContent />
+    </Suspense>
   );
 }

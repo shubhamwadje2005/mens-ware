@@ -22,6 +22,7 @@ import {
   Filter,
   RefreshCw,
 } from "lucide-react";
+import { MessagesSkeleton } from "@/components/admin/AdminSkeletons";
 
 export default function AdminMessagesPage() {
   const { data, isLoading, isFetching, refetch } = useGetMessagesQuery();
@@ -194,9 +195,7 @@ export default function AdminMessagesPage() {
 
       {/* Loading state */}
       {isLoading && (
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className="animate-spin text-[#ff6b00]" size={36} />
-        </div>
+        <MessagesSkeleton count={5} />
       )}
 
       {/* Empty State */}

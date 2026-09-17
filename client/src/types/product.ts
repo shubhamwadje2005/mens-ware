@@ -25,6 +25,7 @@ export interface ProductColor {
   hex: string;
   images?: (ProductImageItem | string)[];
   skuCode?: string;
+  isAvailable?: boolean;
 }
 
 export interface ProductAttributes {

@@ -6,6 +6,7 @@ import Navbar from "@/components/navbar/Navbar";
 import ScrollReveal, { StaggerReveal } from "@/components/ui/ScrollReveal";
 import { useGetAboutQuery } from "@/redux/api/about.api";
 import { Loader2, PackageOpen } from "lucide-react";
+import { StoreAboutSkeleton } from "@/components/ui/StoreSkeletons";
 
 const SmoothScrollProvider = dynamic(
   () => import("@/components/layout/SmoothScrollProvider"),
@@ -34,9 +35,7 @@ export default function AboutPage() {
       <main className="min-h-screen bg-black">
         {/* Loading state */}
         {isLoading && (
-          <div className="flex h-[80vh] items-center justify-center">
-            <Loader2 className="animate-spin text-[#ff6b00]" size={36} />
-          </div>
+          <StoreAboutSkeleton />
         )}
 
         {/* Empty state when no about content in DB */}

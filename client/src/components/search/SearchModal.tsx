@@ -121,9 +121,9 @@ export default function SearchModal() {
                           <p className="text-xs text-white/40">{product.category}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-bold text-[#ff6b00]">${product.price}</p>
-                          {product.originalPrice && (
-                            <p className="text-xs text-white/30 line-through">${product.originalPrice}</p>
+                          <p className="text-sm font-bold text-[#ff6b00]">₹{product.price?.toLocaleString()}</p>
+                          {product.originalPrice && product.originalPrice > product.price && (
+                            <p className="text-xs text-white/30 line-through">₹{product.originalPrice.toLocaleString()}</p>
                           )}
                         </div>
                         <ArrowRight size={14} className="shrink-0 text-white/20" />

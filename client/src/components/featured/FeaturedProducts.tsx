@@ -12,6 +12,7 @@ import Link from "next/link";
 gsap.registerPlugin(ScrollTrigger);
 
 import { PackageOpen, Loader2 } from "lucide-react";
+import { ProductGridSkeleton } from "@/components/ui/StoreSkeletons";
 
 export default function FeaturedProducts() {
   const ref = useRef<HTMLDivElement>(null);
@@ -80,11 +81,9 @@ export default function FeaturedProducts() {
           </p>
         </div>
 
-        {/* Loading Spinner */}
+        {/* Loading Skeleton */}
         {isLoading ? (
-          <div className="flex h-[35vh] items-center justify-center">
-            <Loader2 size={36} className="animate-spin text-[#ff6b00]" />
-          </div>
+          <ProductGridSkeleton count={8} />
         ) : featured.length > 0 ? (
           <>
             <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">

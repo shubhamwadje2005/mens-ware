@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, [data-theme="dark"], .dark *, [data-theme="dark"] *));
+
 @theme inline {
   --color-noir: #050505;
   --color-noir-light: #0d0d0d;
@@ -458,8 +460,42 @@ html.light {
   div[class*="bg-[#111111]"]:not([class*="absolute"]):not([class*="aspect-"]),
   div[class*="bg-[#111]"]:not([class*="absolute"]):not([class*="aspect-"]),
   div[class*="bg-[#121212]"]:not([class*="absolute"]):not([class*="aspect-"]),
-  div[class*="bg-[#141414]"]:not([class*="absolute"]):not([class*="aspect-"]) {
+  div[class*="bg-[#141414]"]:not([class*="absolute"]):not([class*="aspect-"]),
+  div[class*="from-[#141414]"]:not(.preserve-white):not([data-overlay]):not([class*="absolute"]),
+  div[class*="from-[#0a0a0a]"]:not(.preserve-white):not([data-overlay]):not([class*="absolute"]),
+  div[class*="from-[#0c0c0c]"]:not(.preserve-white):not([data-overlay]):not([class*="absolute"]),
+  div[class*="from-[#111111]"]:not(.preserve-white):not([data-overlay]):not([class*="absolute"]),
+  div[class*="from-[#121212]"]:not(.preserve-white):not([data-overlay]):not([class*="absolute"]),
+  div[class*="from-[#101010]"]:not(.preserve-white):not([data-overlay]):not([class*="absolute"]),
+  div[class*="from-black"]:not(.preserve-white):not([data-overlay]):not([class*="absolute"]),
+  div[class*="bg-gradient-to-b"][class*="from-[#"]:not([class*="from-[#ff"]):not(.preserve-white):not([data-overlay]):not([class*="absolute"]),
+  div[class*="bg-gradient-to-r"][class*="from-[#"]:not([class*="from-[#ff"]):not([class*="h-[2px]"]):not(.preserve-white):not([data-overlay]):not([class*="absolute"]) {
+    background-image: none !important;
     background-color: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05) !important;
+  }
+
+  /* White borders in Light Mode convert to subtle dark borders */
+  .border-white\/5,
+  .border-white\/\[0\.02\],
+  .border-white\/\[0\.03\],
+  .border-white\/\[0\.04\],
+  .border-white\/\[0\.05\],
+  .border-white\/\[0\.06\],
+  .border-white\/\[0\.08\],
+  .border-white\/10,
+  .border-white\/15,
+  .border-white\/20,
+  [class*="border-white/"]:not(.preserve-white):not(.preserve-white *):not([data-overlay] *):not(.btn-pill-dark *) {
+    border-color: rgba(0, 0, 0, 0.08) !important;
+  }
+
+  /* White dividers in Light Mode */
+  .divide-white\/5 > :not([hidden]) ~ :not([hidden]),
+  .divide-white\/10 > :not([hidden]) ~ :not([hidden]),
+  [class*="divide-white/"] > :not([hidden]) ~ :not([hidden]) {
+    border-color: rgba(0, 0, 0, 0.06) !important;
   }
 
   /* Subtle Surfaces */
@@ -504,6 +540,18 @@ html.light {
   /* Header & Navigation in Light Mode */
   header[class*="bg-black"] {
     background-color: rgba(248, 247, 242, 0.9) !important;
+    border-color: rgba(0, 0, 0, 0.08) !important;
+  }
+
+  /* User Dropdown Menu in Light Mode */
+  .user-dropdown {
+    background-color: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 15px 50px -10px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .user-dropdown [class*="border-b"],
+  .user-dropdown [class*="border-t"] {
     border-color: rgba(0, 0, 0, 0.08) !important;
   }
 
@@ -633,9 +681,48 @@ html.light {
     color: rgba(18, 18, 18, 0.28) !important;
   }
 
-  /* Hover Text */
-  .hover\:text-white:hover {
+  /* Hover Text in Light Mode (only for light backgrounds) */
+  .hover\:text-white:not(.preserve-white *):not([data-overlay] *):not([class*="bg-black"] *):not([class*="bg-black/"] *):hover {
     color: #000000 !important;
+  }
+
+  /* Dark overlays, black cards, and preserve-white elements must ALWAYS keep crystal clear white text */
+  [data-overlay] .text-white,
+  [data-overlay] [class*="text-white"]:not([class*="text-white/"]),
+  .preserve-white .text-white,
+  .preserve-white [class*="text-white"]:not([class*="text-white/"]),
+  .admin-badge-dark,
+  .admin-badge-counter,
+  span[class*="bg-black/"] .text-white,
+  span[class*="bg-black/85"],
+  button.bg-black .text-white {
+    color: #ffffff !important;
+  }
+
+  [data-overlay] [class*="text-white/90"],
+  .preserve-white [class*="text-white/90"],
+  span[class*="bg-black/"] [class*="text-white/90"] {
+    color: rgba(255, 255, 255, 0.9) !important;
+  }
+
+  [data-overlay] [class*="text-white/80"],
+  .preserve-white [class*="text-white/80"],
+  span[class*="bg-black/"] [class*="text-white/80"] {
+    color: rgba(255, 255, 255, 0.8) !important;
+  }
+
+  [data-overlay] [class*="text-white/70"],
+  .preserve-white [class*="text-white/70"],
+  [class*="bg-black"] [class*="text-white/70"],
+  [class*="bg-black/"] [class*="text-white/70"] {
+    color: rgba(255, 255, 255, 0.7) !important;
+  }
+
+  [data-overlay] [class*="text-white/60"],
+  .preserve-white [class*="text-white/60"],
+  [class*="bg-black"] [class*="text-white/60"],
+  [class*="bg-black/"] [class*="text-white/60"] {
+    color: rgba(255, 255, 255, 0.6) !important;
   }
 
   /* Borders Overrides */
@@ -695,18 +782,33 @@ html.light {
   /* =============================================
      PROTECTED OVERLAYS (WHITE & ACCENT TEXT ON IMAGES/MEDIA)
      ============================================= */
+  .preserve-white,
+  [data-overlay],
+  .dark-overlay {
+    color-scheme: dark;
+  }
+
   .preserve-white .text-white,
-  .preserve-white h1:not([class*="text-[#"]):not([class*="text-orange"]):not(.gradient-text),
-  .preserve-white h2:not([class*="text-[#"]):not([class*="text-orange"]):not(.gradient-text),
-  .preserve-white h3:not([class*="text-[#"]):not([class*="text-orange"]):not(.gradient-text),
+  .preserve-white [class*="text-white"]:not([class*="text-white/"]),
+  .preserve-white h1,
+  .preserve-white h2,
+  .preserve-white h3,
   .preserve-white h4,
   .preserve-white h5,
   .preserve-white h6,
   [data-overlay] .text-white,
-  [data-overlay] h1:not([class*="text-[#"]):not([class*="text-orange"]):not(.gradient-text),
-  [data-overlay] h2:not([class*="text-[#"]):not([class*="text-orange"]):not(.gradient-text),
-  [data-overlay] h3:not([class*="text-[#"]):not([class*="text-orange"]):not(.gradient-text),
-  .dark-overlay .text-white {
+  [data-overlay] [class*="text-white"]:not([class*="text-white/"]),
+  [data-overlay] h1,
+  [data-overlay] h2,
+  [data-overlay] h3,
+  [data-overlay] h4,
+  [data-overlay] h5,
+  [data-overlay] h6,
+  .dark-overlay .text-white,
+  [class*="from-black"] ~ div .text-white,
+  [class*="from-black"] ~ div h1,
+  [class*="from-black"] ~ div h2,
+  [class*="from-black"] ~ div h3 {
     color: #ffffff !important;
   }
 
@@ -717,7 +819,12 @@ html.light {
   .preserve-white [class*="text-white/70"],
   [data-overlay] p:not([class*="text-[#"]):not([class*="text-orange"]):not([class*="text-emerald"]):not([class*="text-red"]):not(.gradient-text),
   [data-overlay] span:not([class*="text-[#"]):not([class*="text-orange"]):not([class*="text-emerald"]):not([class*="text-red"]):not(.gradient-text),
-  .dark-overlay p:not([class*="text-[#"]):not([class*="text-orange"]):not(.gradient-text) {
+  [data-overlay] [class*="text-white/90"],
+  [data-overlay] [class*="text-white/80"],
+  [data-overlay] [class*="text-white/70"],
+  .dark-overlay p:not([class*="text-[#"]):not([class*="text-orange"]):not(.gradient-text),
+  [class*="from-black"] ~ div [class*="text-white/70"],
+  [class*="from-black"] ~ div [class*="text-white/80"] {
     color: rgba(255, 255, 255, 0.92) !important;
   }
 
@@ -726,16 +833,35 @@ html.light {
   .preserve-white [class*="text-white/50"],
   .preserve-white [class*="text-white/45"],
   .preserve-white [class*="text-white/40"],
+  [data-overlay] [class*="text-white/60"],
+  [data-overlay] [class*="text-white/55"],
   [data-overlay] [class*="text-white/50"],
+  [data-overlay] [class*="text-white/45"],
   [data-overlay] [class*="text-white/40"],
-  .dark-overlay [class*="text-white/40"] {
-    color: rgba(255, 255, 255, 0.72) !important;
+  .dark-overlay [class*="text-white/40"],
+  [class*="from-black"] ~ div [class*="text-white/50"],
+  [class*="from-black"] ~ div [class*="text-white/40"] {
+    color: rgba(255, 255, 255, 0.75) !important;
   }
 
   .preserve-white [class*="text-white/30"],
+  .preserve-white [class*="text-white/25"],
   .preserve-white [class*="text-white/20"],
-  [data-overlay] [class*="text-white/30"] {
+  [data-overlay] [class*="text-white/30"],
+  [data-overlay] [class*="text-white/25"],
+  [data-overlay] [class*="text-white/20"],
+  [class*="from-black"] ~ div [class*="text-white/30"] {
     color: rgba(255, 255, 255, 0.48) !important;
+  }
+
+  /* Group-hover and hover states on dark overlays must remain white */
+  .preserve-white [class*="group-hover:text-white"]:hover,
+  .preserve-white .group:hover [class*="group-hover:text-white"],
+  [data-overlay] [class*="group-hover:text-white"]:hover,
+  [data-overlay] .group:hover [class*="group-hover:text-white"],
+  .preserve-white .hover\:text-white:hover,
+  [data-overlay] .hover\:text-white:hover {
+    color: #ffffff !important;
   }
 
   /* Explicitly guarantee orange text remains orange across light and dark modes */
@@ -790,39 +916,165 @@ html.light {
   .admin-layout [class*="bg-[#121212]"],
   .admin-layout [class*="bg-[#0d0d0d]"],
   .admin-layout [class*="bg-[#101010]"],
-  .admin-layout div.rounded-2xl:not([class*="bg-black/"]):not([class*="bg-emerald"]):not([class*="bg-red"]),
-  .admin-layout div.rounded-xl:not([class*="bg-black/"]):not([class*="bg-emerald"]):not([class*="bg-red"]) {
+  .admin-layout div.rounded-2xl:not([class*="bg-black/"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not([class*="bg-[#ff6b00]"]):not([class*="bg-[#ff6b00]/"]):not([class*="h-8"]):not([class*="h-10"]):not([class*="h-12"]),
+  .admin-layout div.rounded-xl:not([class*="bg-black/"]):not([class*="bg-emerald"]):not([class*="bg-red"]):not([class*="bg-[#ff6b00]"]):not([class*="bg-[#ff6b00]/"]):not([class*="h-8"]):not([class*="h-10"]):not([class*="h-12"]) {
     background-color: #ffffff !important;
     border-color: rgba(0, 0, 0, 0.08) !important;
     box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.04) !important;
   }
 
+  /* Protect Accent Icon Containers & Badges in Light Mode */
+  .admin-layout [class*="bg-[#ff6b00]/10"],
+  .admin-layout [class*="bg-[#ff6b00]/20"],
+  .admin-layout [class*="bg-[#ff6b00]/5"] {
+    background-color: rgba(255, 107, 0, 0.1) !important;
+    border-color: rgba(255, 107, 0, 0.25) !important;
+  }
+  .admin-layout [class*="bg-[#ff6b00]/10"] svg,
+  .admin-layout [class*="bg-[#ff6b00]/20"] svg,
+  .admin-layout [class*="bg-[#ff6b00]/5"] svg {
+    color: #ff6b00 !important;
+    stroke: #ff6b00 !important;
+    fill: none !important;
+  }
+
   /* Admin Typography */
-  .admin-layout h1,
-  .admin-layout h2,
-  .admin-layout h3,
-  .admin-layout h4,
-  .admin-layout .text-white,
-  .admin-layout p.text-white,
-  .admin-layout span.text-white,
+  .admin-layout h1:not(.preserve-white *):not([data-overlay] *),
+  .admin-layout h2:not(.preserve-white *):not([data-overlay] *),
+  .admin-layout h3:not(.preserve-white *):not([data-overlay] *),
+  .admin-layout h4:not(.preserve-white *):not([data-overlay] *),
+  .admin-layout .text-white:not(.preserve-white *):not([data-overlay] *):not([class*="bg-black"] *):not([class*="bg-black/"] *):not([class*="bg-red"] *):not(.btn-pill-dark *):not(.admin-badge-dark *):not(.admin-badge-counter *),
+  .admin-layout p.text-white:not(.preserve-white *):not([data-overlay] *):not([class*="bg-black"] *):not([class*="bg-black/"] *),
+  .admin-layout span.text-white:not(.preserve-white *):not([data-overlay] *):not([class*="bg-black"] *):not([class*="bg-black/"] *):not(.admin-badge-dark *):not(.admin-badge-counter *),
   .admin-layout td,
-  .admin-layout label {
+  .admin-layout label:not(.preserve-white *):not([data-overlay] *) {
     color: #121212 !important;
   }
 
-  .admin-layout [class*="text-white/70"],
-  .admin-layout [class*="text-white/80"] {
+  .admin-layout [class*="text-white/70"]:not(.preserve-white *):not([data-overlay] *):not([class*="bg-black"] *):not([class*="bg-black/"] *),
+  .admin-layout [class*="text-white/80"]:not(.preserve-white *):not([data-overlay] *):not([class*="bg-black"] *):not([class*="bg-black/"] *) {
     color: rgba(18, 18, 18, 0.8) !important;
   }
 
-  .admin-layout [class*="text-white/50"],
-  .admin-layout [class*="text-white/60"] {
+  .admin-layout [class*="text-white/50"]:not(.preserve-white *):not([data-overlay] *):not([class*="bg-black"] *):not([class*="bg-black/"] *),
+  .admin-layout [class*="text-white/60"]:not(.preserve-white *):not([data-overlay] *):not([class*="bg-black"] *):not([class*="bg-black/"] *) {
     color: rgba(18, 18, 18, 0.6) !important;
   }
 
-  .admin-layout [class*="text-white/30"],
-  .admin-layout [class*="text-white/40"] {
+  .admin-layout [class*="text-white/30"]:not(.preserve-white *):not([data-overlay] *):not([class*="bg-black"] *):not([class*="bg-black/"] *),
+  .admin-layout [class*="text-white/40"]:not(.preserve-white *):not([data-overlay] *):not([class*="bg-black"] *):not([class*="bg-black/"] *) {
     color: rgba(18, 18, 18, 0.45) !important;
+  }
+
+  /* Admin Badges & Overlays on Dark Surfaces & Image Previews */
+  .admin-layout [data-overlay],
+  .admin-layout .preserve-white,
+  .admin-layout .admin-badge-dark,
+  .admin-layout .admin-badge-counter,
+  .admin-layout span[class*="bg-black/"] {
+    color-scheme: dark;
+  }
+
+  .admin-layout [data-overlay] .text-white,
+  .admin-layout [data-overlay] button,
+  .admin-layout [data-overlay] span:not([class*="text-[#"]):not([class*="text-orange"]):not([class*="fill-black"]):not(.fill-black),
+  .admin-layout .preserve-white .text-white,
+  .admin-layout .preserve-white button,
+  .admin-layout .preserve-white span:not([class*="text-[#"]):not([class*="text-orange"]):not([class*="fill-black"]):not(.fill-black),
+  .admin-layout span[class*="bg-black/"],
+  .admin-badge-dark,
+  .admin-badge-dark span:not([class*="text-[#"]):not([class*="text-orange"]),
+  .admin-badge-counter,
+  .admin-badge-counter span:not([class*="text-[#"]):not([class*="text-orange"]) {
+    color: #ffffff !important;
+  }
+
+  .admin-layout [data-overlay] button:hover,
+  .admin-layout .preserve-white button:hover,
+  .admin-badge-dark:hover {
+    color: #ff6b00 !important;
+  }
+
+  /* Admin SVG Icons on Dark Badges / Overlays */
+  .admin-layout [data-overlay] svg:not(.fill-black),
+  .admin-layout .preserve-white svg:not(.fill-black),
+  .admin-layout .admin-badge-dark svg,
+  .admin-layout .admin-badge-counter svg,
+  .admin-layout span[class*="bg-black/"] svg {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+  }
+
+  /* Admin General SVG Icons - Ensure outline stroke icons NEVER fill with solid black or color */
+  .admin-layout svg:not(.fill-black):not([data-fill="true"]):not([fill="currentColor"]):not([fill*="#"]):not([class*="fill-amber"]):not([class*="fill-yellow"]) {
+    fill: none !important;
+  }
+
+  /* Admin General SVG Icons - Adapt to Parent Text Color */
+  .admin-layout svg:not([data-overlay] *):not(.preserve-white *):not(.admin-badge-dark *):not(.admin-badge-counter *):not(span[class*="bg-black/"] *):not(.fill-black):not(.btn-pill-gold *):not([class*="text-[#ff6b00]"] *):not([class*="text-orange"] *) {
+    stroke: currentColor;
+  }
+
+  /* Accent SVGs in Admin Panel (Headers, Stat Cards, Action Buttons) */
+  .admin-layout [class*="text-[#ff6b00]"] svg,
+  .admin-layout [class*="text-orange"] svg,
+  .admin-layout svg[class*="text-[#ff6b00]"],
+  .admin-layout svg[class*="text-orange"],
+  .admin-layout [class*="bg-[#ff6b00]/10"] svg,
+  .admin-layout [class*="bg-[#ff6b00]/20"] svg,
+  .admin-layout [class*="bg-[#ff6b00]/5"] svg {
+    color: #ff6b00 !important;
+    stroke: #ff6b00 !important;
+    fill: none !important;
+  }
+
+  /* Stat Card Accent Colors in Admin Panel */
+  .admin-layout [class*="text-blue"] svg,
+  .admin-layout [class*="bg-blue"] svg {
+    color: #3b82f6 !important;
+    stroke: #3b82f6 !important;
+    fill: none !important;
+  }
+  .admin-layout [class*="text-emerald"] svg,
+  .admin-layout [class*="bg-emerald"] svg {
+    color: #10b981 !important;
+    stroke: #10b981 !important;
+    fill: none !important;
+  }
+  .admin-layout [class*="text-amber"] svg,
+  .admin-layout [class*="bg-amber"] svg {
+    color: #f59e0b !important;
+    stroke: #f59e0b !important;
+    fill: none !important;
+  }
+  .admin-layout [class*="text-rose"] svg,
+  .admin-layout [class*="bg-rose"] svg {
+    color: #f43f5e !important;
+    stroke: #f43f5e !important;
+    fill: none !important;
+  }
+
+  /* Only Star icons with explicit .fill-black get solid black fill */
+  .admin-layout svg.fill-black,
+  .admin-layout [data-overlay] svg.fill-black,
+  .admin-layout .preserve-white svg.fill-black {
+    color: #000000 !important;
+    stroke: #000000 !important;
+    fill: #000000 !important;
+  }
+
+  /* Solid Gold Buttons & Text in Admin Layout */
+  .admin-layout .btn-pill-gold,
+  .admin-layout .btn-pill-gold * {
+    color: #000000 !important;
+  }
+
+  /* Counter Pills (e.g. 1 / 3, #1, #2, Set Primary) */
+  .admin-badge-counter,
+  .admin-badge-dark {
+    background-color: rgba(0, 0, 0, 0.85) !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
   }
 
   /* Admin Inputs, Select Dropdowns & Textareas */
@@ -923,6 +1175,110 @@ html.light {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+
+@keyframes skeleton-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Universal Skeleton Loader - High Contrast Light & Dark Themes */
+.skeleton-shimmer,
+html.light .skeleton-shimmer,
+[data-theme="light"] .skeleton-shimmer {
+  position: relative !important;
+  overflow: hidden !important;
+  background-color: rgba(0, 0, 0, 0.095) !important;
+}
+
+html.dark .skeleton-shimmer,
+[data-theme="dark"] .skeleton-shimmer,
+.dark .skeleton-shimmer {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.skeleton-shimmer::before,
+html.light .skeleton-shimmer::before,
+[data-theme="light"] .skeleton-shimmer::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  transform: translateX(-100%) !important;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.85) 50%,
+    transparent 100%
+  ) !important;
+  animation: skeleton-sweep 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
+  pointer-events: none !important;
+}
+
+html.dark .skeleton-shimmer::before,
+[data-theme="dark"] .skeleton-shimmer::before,
+.dark .skeleton-shimmer::before {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.14) 50%,
+    transparent 100%
+  ) !important;
+}
+
+/* Universal Skeleton Card Containers */
+.skeleton-card,
+html.light .skeleton-card,
+[data-theme="light"] .skeleton-card {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+html.dark .skeleton-card,
+[data-theme="dark"] .skeleton-card,
+.dark .skeleton-card {
+  background-color: #0c0c0c !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* =============================================
+   DUAL-THEME BRAND LOGO
+   Light Mode -> Shows logo-light.png (Black text/strokes)
+   Dark Mode  -> Shows logo-dark.png (White text/strokes)
+   Both modes retain orange turban, orange "म", and red tilak
+   ============================================= */
+.logo-dark-mode {
+  display: inline-block !important;
+}
+
+.logo-light-mode {
+  display: none !important;
+}
+
+html.light .logo-dark-mode,
+[data-theme="light"] .logo-dark-mode,
+.light .logo-dark-mode {
+  display: none !important;
+}
+
+html.light .logo-light-mode,
+[data-theme="light"] .logo-light-mode,
+.light .logo-light-mode {
+  display: inline-block !important;
+}
+
+html.dark .logo-dark-mode,
+[data-theme="dark"] .logo-dark-mode,
+.dark .logo-dark-mode {
+  display: inline-block !important;
+}
+
+html.dark .logo-light-mode,
+[data-theme="dark"] .logo-light-mode,
+.dark .logo-light-mode {
+  display: none !important;
+}
+
 
 @layer utilities {
   .animate-float {

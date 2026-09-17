@@ -34,7 +34,7 @@ function AdminGuard({ children }: { children: React.ReactNode }) {
   if (!isAdminAuthenticated) return null;
 
   return (
-    <div className="admin-layout min-h-screen bg-[#050505] text-white transition-colors duration-300">
+    <div className="admin-layout min-h-screen bg-[#f8f7f2] dark:bg-[#050505] text-neutral-900 dark:text-white transition-colors duration-300">
       <AdminSidebar />
       <main className="pl-0 lg:pl-64">
         <div className="p-6 pt-16 lg:p-8 lg:pt-8">{children}</div>

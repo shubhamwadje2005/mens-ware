@@ -25,7 +25,7 @@ export default function InstagramGallery() {
             <div className="mb-5 flex items-center justify-center gap-3">
               <div className="h-px w-8 bg-[#ff6b00]" />
               <span className="text-[10px] font-semibold tracking-[0.35em] text-[#ff6b00] uppercase sm:text-[11px]">
-                @noirstudio
+                @maitrimenswear
               </span>
               <div className="h-px w-8 bg-[#ff6b00]" />
             </div>
@@ -64,7 +64,7 @@ export default function InstagramGallery() {
                     {product.name}
                   </p>
                   <p className="text-[10px] font-semibold text-[#ff6b00]">
-                    ${product.price}
+                    ₹{product.price?.toLocaleString()}
                   </p>
                 </div>
               </div>

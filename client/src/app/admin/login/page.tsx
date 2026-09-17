@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAdmin } from "@/context/AdminContext";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
+import BrandLogo from "@/components/ui/BrandLogo";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
@@ -28,12 +31,24 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-5">
+    <div className="relative min-h-screen bg-black flex items-center justify-center px-5">
+      <div className="absolute top-5 right-5 z-20">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-xl font-bold uppercase tracking-[0.2em] text-white mb-2">
-            NOIR<span className="text-[#ff6b00]">&mdash;</span>ADMIN
+        <div className="text-center mb-8 flex flex-col items-center">
+          <BrandLogo
+            width={100}
+            height={68}
+            className="h-16 w-auto object-contain mb-3"
+            priority
+          />
+          <h1 className="text-xl font-bold uppercase tracking-[0.2em] text-white mb-1">
+            MAITRI<span className="text-[#ff6b00]">&mdash;</span>ADMIN
           </h1>
+          <p className="text-[10px] tracking-[0.25em] text-[#ff6b00] uppercase font-semibold mb-2">
+            MEN&apos;S WEAR
+          </p>
           <p className="text-xs text-white/30">Admin Dashboard Login</p>
         </div>
 

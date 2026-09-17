@@ -14,6 +14,7 @@ const { auth, adminAuth } = require("../middweare/auth");
 
 router.post("/", auth, createOrder);
 router.get("/", auth, getUserOrders);
+router.get("/my-orders", auth, getUserOrders);
 router.get("/all", adminAuth, getAllOrders);
 router.get("/deleted", adminAuth, getDeletedOrders);
 router.get("/:id", auth, getOrderById);

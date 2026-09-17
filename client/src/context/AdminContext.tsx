@@ -24,7 +24,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<AdminUser | null>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("noir-admin");
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("adminToken");
       if (saved && token) {
         try {
           return JSON.parse(saved);
@@ -40,7 +40,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const saved = localStorage.getItem("noir-admin");
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("adminToken");
     if (saved && token) {
       try {
         setAdmin(JSON.parse(saved));
@@ -75,7 +75,6 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       };
 
       if (data.token) {
-        localStorage.setItem("token", data.token);
         localStorage.setItem("adminToken", data.token);
       }
       localStorage.setItem("noir-admin", JSON.stringify(adminData));
@@ -97,7 +96,6 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error("Admin Logout API call error:", err);
     } finally {
-      localStorage.removeItem("token");
       localStorage.removeItem("adminToken");
       localStorage.removeItem("noir-admin");
       setAdmin(null);

@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useToast } from "@/context/ToastContext";
@@ -14,10 +15,29 @@ interface ProductCardProps {
   index?: number;
 }
 
+const COLOR_NAMES_MAP: Record<string, string> = {
+  white: "#FFFFFF",
+  "crisp white": "#FFFFFF",
+  black: "#000000",
+  "sky blue": "#779ECB",
+  blue: "#2563EB",
+  navy: "#1E293B",
+  gray: "#6B7280",
+  grey: "#6B7280",
+  charcoal: "#2D3748",
+  beige: "#E2D9C8",
+  brown: "#78350F",
+  green: "#166534",
+  olive: "#556B2F",
+};
+
 export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const imgBoxRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [selectedSwatchColor, setSelectedSwatchColor] = useState<string | null>(null);
   const { addItem, isInCart } = useCart();
   const { isInWishlist, toggleItem } = useWishlist();
   const { addToast } = useToast();
@@ -26,7 +46,91 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   const inWishlist = isInWishlist(prodId);
   const inCart = isInCart(prodId);
 
-  const isAvailable = product.isAvailable !== false;
+  // Extract display color swatches with proper hex codes, images, and availability
+  const colorSwatches = useMemo(() => {
+    if (product.colorOptions && product.colorOptions.length > 0) {
+      return product.colorOptions.map((c) => ({
+        name: c.name,
+        hex: c.hex || (c.name.startsWith("#") ? c.name : COLOR_NAMES_MAP[c.name.trim().toLowerCase()] || "#1a1a1a"),
+        isAvailable: c.isAvailable !== false,
+        images: (c.images || [])
+          .map((img: any) => (typeof img === "string" ? img : img?.url))
+          .filter(Boolean),
+      }));
+    }
+    if (product.variants && product.variants.length > 0) {
+      const map = new Map<string, { name: string; hex: string; isAvailable: boolean; images: string[] }>();
+      product.variants.forEach((v) => {
+        if (v.color && !map.has(v.color.toLowerCase())) {
+          map.set(v.color.toLowerCase(), {
+            name: v.color,
+            hex: v.colorCode || (v.color.startsWith("#") ? v.color : COLOR_NAMES_MAP[v.color.trim().toLowerCase()] || "#1a1a1a"),
+            isAvailable: v.isActive !== false && v.stock > 0,
+            images: (v.images || [])
+              .map((img: any) => (typeof img === "string" ? img : img?.url))
+              .filter(Boolean),
+          });
+        }
+      });
+      if (map.size > 0) return Array.from(map.values());
+    }
+    if (product.colors && product.colors.length > 0) {
+      return product.colors.map((c) => {
+        if (c.startsWith("#")) return { name: c, hex: c, isAvailable: true, images: [] };
+        const lower = c.trim().toLowerCase();
+        const mappedHex = COLOR_NAMES_MAP[lower] || lower.replace(/\s+/g, "");
+        return { name: c, hex: mappedHex, isAvailable: true, images: [] };
+      });
+    }
+    return [];
+  }, [product]);
+
+  const activeSwatch = colorSwatches.find(
+    (s) => s.name.toLowerCase() === selectedSwatchColor?.toLowerCase()
+  );
+  const isAvailable = product.isAvailable !== false && (activeSwatch ? activeSwatch.isAvailable !== false : true);
+
+  // Extract all available photos for multi-photo cursor scrub (prioritizes active color, then main product photos)
+  const productImages = useMemo(() => {
+    // 1. If a specific color swatch is selected, show ONLY that color's dedicated photos
+    if (activeSwatch && activeSwatch.images && activeSwatch.images.length > 0) {
+      return activeSwatch.images.filter((u): u is string => typeof u === "string" && Boolean(u.trim()));
+    }
+
+    const list: string[] = [];
+
+    // 2. Primary catalog images
+    if (product.image && typeof product.image === "string" && product.image.trim()) {
+      list.push(product.image.trim());
+    }
+
+    if (product.images && product.images.length > 0) {
+      product.images.forEach((img: any) => {
+        const url = typeof img === "string" ? img : img?.url;
+        if (url && typeof url === "string" && url.trim() && !list.includes(url.trim())) {
+          list.push(url.trim());
+        }
+      });
+    }
+
+    if (product.hoverImage && typeof product.hoverImage === "string" && product.hoverImage.trim() && !list.includes(product.hoverImage.trim())) {
+      list.push(product.hoverImage.trim());
+    }
+
+    // 3. If no main photos exist, check first color option
+    if (list.length === 0 && product.colorOptions && product.colorOptions[0]?.images) {
+      product.colorOptions[0].images.forEach((img: any) => {
+        const url = typeof img === "string" ? img : img?.url;
+        if (url && typeof url === "string" && url.trim() && !list.includes(url.trim())) {
+          list.push(url.trim());
+        }
+      });
+    }
+
+    return list.length > 0
+      ? list
+      : ["https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&h=800&fit=crop&q=80"];
+  }, [product, activeSwatch]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!ref.current) return;
@@ -38,6 +142,35 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
 
   const handleMouseLeave = () => {
     setTilt({ x: 0, y: 0 });
+    setActiveImageIndex(0);
+  };
+
+  // Cursor scrub across image box horizontally
+  const handleImageMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!imgBoxRef.current || productImages.length <= 1) return;
+    const rect = imgBoxRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const width = rect.width;
+    if (width <= 0) return;
+    const segment = Math.min(
+      Math.max(0, Math.floor((x / width) * productImages.length)),
+      productImages.length - 1
+    );
+    if (segment !== activeImageIndex) {
+      setActiveImageIndex(segment);
+    }
+  };
+
+  const handlePrevImage = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveImageIndex((prev) => (prev > 0 ? prev - 1 : productImages.length - 1));
+  };
+
+  const handleNextImage = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveImageIndex((prev) => (prev < productImages.length - 1 ? prev + 1 : 0));
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -88,22 +221,24 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
         ? defaultVariant.images[0]
         : defaultVariant?.images?.[0]?.url || product.image;
 
-    addItem(
+    const buyNowPayload = {
       product,
-      defaultSize,
-      defaultColor,
-      defaultVariant
-        ? {
-            variantId: defaultVariant._id,
-            sku: defaultVariant.sku,
-            price: defaultVariant.sellingPrice,
-            image: variantImg,
-            stock: defaultVariant.stock,
-            colorCode: defaultVariant.colorCode,
-          }
-        : undefined
-    );
-    router.push("/checkout");
+      quantity: 1,
+      selectedSize: defaultSize,
+      selectedColor: defaultColor,
+      colorCode: defaultVariant?.colorCode,
+      variantId: defaultVariant?._id,
+      sku: defaultVariant?.sku,
+      price: defaultVariant?.sellingPrice || product.price,
+      image: variantImg,
+      stock: defaultVariant?.stock || product.stock,
+    };
+    try {
+      sessionStorage.setItem("noir-buynow", JSON.stringify(buyNowPayload));
+    } catch (err) {
+      console.error(err);
+    }
+    router.push("/checkout?buyNow=true");
   };
 
   const handleToggleWishlist = (e: React.MouseEvent) => {
@@ -127,7 +262,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       onMouseLeave={handleMouseLeave}
       style={{ perspective: 1000 }}
     >
-      <Link href={`/product/${product.slug}`}>
+      <Link href={selectedSwatchColor ? `/product/${product.slug}?color=${encodeURIComponent(selectedSwatchColor)}` : `/product/${product.slug}`}>
         <motion.div
           className={`relative overflow-hidden rounded-2xl bg-[#0c0c0c] border transition-all duration-500 ${
             !isAvailable
@@ -140,36 +275,75 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
           }}
           transition={{ type: "spring", stiffness: 200, damping: 20 }}
         >
-          {/* Image Container */}
-          <div className="preserve-white relative aspect-[3/4] overflow-hidden">
+          {/* Image Container with Cursor Scrubbing & Multiple Photos */}
+          <div
+            ref={imgBoxRef}
+            onMouseMove={handleImageMouseMove}
+            className="preserve-white relative aspect-[3/4] overflow-hidden select-none"
+          >
             <img
-              src={product.image}
+              src={productImages[activeImageIndex] || productImages[0]}
               alt={product.name}
               onError={(e) => {
                 e.currentTarget.src = "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&h=800&fit=crop&q=80";
               }}
-              className={`h-full w-full object-cover transition-all duration-700 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] group-hover:scale-110 ${
+              className={`h-full w-full object-cover transition-all duration-300 ease-out group-hover:scale-105 ${
                 !isAvailable ? "opacity-85 grayscale-[20%]" : ""
               }`}
             />
-            {product.hoverImage && (
-              <img
-                src={product.hoverImage}
-                alt={product.name}
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                }}
-                className={`absolute inset-0 h-full w-full object-cover opacity-0 transition-all duration-700 group-hover:opacity-100 ${
-                  !isAvailable ? "opacity-85 grayscale-[20%]" : ""
-                }`}
-              />
+
+            {/* Segment Indicator Dashes when multiple photos exist */}
+            {productImages.length > 1 && (
+              <div className="absolute top-2.5 left-3 right-3 z-20 flex gap-1 items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                {productImages.map((_, idx) => (
+                  <div
+                    key={idx}
+                    className={`h-1 flex-1 rounded-full transition-all duration-150 ${
+                      idx === activeImageIndex
+                        ? "bg-[#ff6b00] shadow-[0_0_8px_rgba(255,107,0,0.8)] scale-y-125"
+                        : "bg-white/30 backdrop-blur-sm"
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Photo Counter Badge (e.g. 2 / 4) */}
+            {productImages.length > 1 && (
+              <div className="absolute top-5 left-3 z-20 rounded-full bg-black/75 backdrop-blur-md border border-white/15 px-2 py-0.5 text-[9px] font-mono font-bold text-white/90 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none flex items-center gap-1 shadow-lg">
+                <span className="text-[#ff6b00]">{activeImageIndex + 1}</span>
+                <span className="text-white/40">/</span>
+                <span>{productImages.length}</span>
+              </div>
+            )}
+
+            {/* Next / Previous Buttons on hover */}
+            {productImages.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={handlePrevImage}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 z-30 h-7 w-7 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-[#ff6b00] hover:text-black transition-all shadow-xl active:scale-90"
+                  title="Previous Photo"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextImage}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-30 h-7 w-7 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-[#ff6b00] hover:text-black transition-all shadow-xl active:scale-90"
+                  title="Next Photo"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </>
             )}
 
             {/* Gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-60 transition-opacity duration-500 group-hover:opacity-80" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-60 transition-opacity duration-500 group-hover:opacity-80 pointer-events-none" />
 
             {/* Top shine line on hover */}
-            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 pointer-events-none" />
 
             {/* Badges: Not Available OR Custom Badge */}
             <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex flex-col gap-1.5 items-start">
@@ -263,22 +437,60 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
               {product.name}
             </h3>
             <div className="flex items-center gap-2.5">
-              <span className="text-[15px] font-bold text-white sm:text-base">${product.price}</span>
-              {product.originalPrice && (
+              <span className="text-[15px] font-bold text-white sm:text-base">
+                ₹{product.price?.toLocaleString()}
+              </span>
+              {product.originalPrice && product.originalPrice > product.price && (
                 <span className="text-[12px] text-white/25 line-through sm:text-[13px]">
-                  ${product.originalPrice}
+                  ₹{product.originalPrice.toLocaleString()}
                 </span>
               )}
             </div>
-            {product.colors && product.colors.length > 0 && (
-              <div className="mt-3 flex gap-2 sm:mt-3.5">
-                {product.colors.map((color, i) => (
-                  <div
-                    key={i}
-                    className="h-3.5 w-3.5 rounded-full border border-white/[0.12] transition-all duration-300 hover:border-white/40 hover:scale-125 sm:h-4 sm:w-4"
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
+            {colorSwatches.length > 0 && (
+              <div className="mt-3 flex items-center justify-between gap-2 sm:mt-3.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {colorSwatches.map((swatch, i) => {
+                    const isSelected = selectedSwatchColor
+                      ? selectedSwatchColor.toLowerCase() === swatch.name.toLowerCase()
+                      : false;
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        title={`${swatch.name}${!swatch.isAvailable ? " (Out of Stock)" : ""}`}
+                        onMouseEnter={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedSwatchColor(swatch.name);
+                          setActiveImageIndex(0);
+                        }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedSwatchColor(swatch.name);
+                          setActiveImageIndex(0);
+                        }}
+                        className={`relative h-4 w-4 rounded-full border shadow-sm transition-all duration-200 hover:scale-125 ${
+                          isSelected
+                            ? "ring-2 ring-[#ff6b00] ring-offset-1 ring-offset-black scale-110"
+                            : "border-black/20 dark:border-white/25"
+                        } ${!swatch.isAvailable ? "opacity-60" : ""}`}
+                        style={{ backgroundColor: swatch.hex }}
+                      >
+                        {!swatch.isAvailable && (
+                          <span className="absolute inset-0 flex items-center justify-center text-[7px] text-white font-bold bg-black/60 rounded-full">
+                            ✕
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {selectedSwatchColor && (
+                  <span className="text-[10px] font-medium text-white/50 truncate max-w-[110px]">
+                    {selectedSwatchColor}
+                  </span>
+                )}
               </div>
             )}
           </div>

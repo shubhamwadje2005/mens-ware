@@ -32,6 +32,7 @@ const colorOptionSchema = new mongoose.Schema(
     hex: { type: String, default: "#000000", trim: true },
     images: [mongoose.Schema.Types.Mixed],
     skuCode: { type: String, trim: true },
+    isAvailable: { type: Boolean, default: true },
   },
   { _id: true }
 );

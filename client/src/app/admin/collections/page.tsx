@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import ImageInputWithPreview from "@/components/admin/ImageInputWithPreview";
+import { CollectionCardsSkeleton } from "@/components/admin/AdminSkeletons";
 
 export default function AdminCollectionsPage() {
   const { data: collections = [], isLoading } = useGetAllCollectionsQuery();
@@ -145,10 +146,10 @@ export default function AdminCollectionsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1 flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 dark:text-white flex items-center gap-2.5">
             <Layers className="text-[#ff6b00]" size={24} /> Collections Management
           </h1>
-          <p className="text-sm text-white/40">
+          <p className="text-sm text-neutral-500 dark:text-white/40">
             Manage featured seasonal collections displayed on the storefront collections page ({activeCount} active of {collections.length} total)
           </p>
         </div>
@@ -157,7 +158,7 @@ export default function AdminCollectionsPage() {
           <Link
             href="/collections"
             target="_blank"
-            className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold uppercase text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+            className="flex items-center gap-2 rounded-full border border-black/10 dark:border-white/10 bg-neutral-100 dark:bg-white/5 px-4 py-2.5 text-xs font-bold uppercase text-neutral-700 dark:text-white/70 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-white/10 transition-colors shadow-xs"
           >
             <ExternalLink size={13} /> View Live Page
           </Link>
@@ -172,9 +173,7 @@ export default function AdminCollectionsPage() {
 
       {/* Loading state */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 size={32} className="animate-spin text-[#ff6b00]" />
-        </div>
+        <CollectionCardsSkeleton count={2} />
       ) : collections.length === 0 ? (
         <div className="rounded-2xl border border-white/[0.06] bg-[#0c0c0c] py-20 text-center">
           <Sparkles size={48} className="mx-auto mb-3 text-white/20" />
@@ -197,9 +196,8 @@ export default function AdminCollectionsPage() {
             return (
               <motion.div
                 key={cId || idx}
-                className={`relative overflow-hidden rounded-2xl border bg-[#0c0c0c] transition-all duration-300 shadow-xl ${
-                  isActive ? "border-white/[0.08]" : "border-red-500/20 opacity-75"
-                }`}
+                className={`relative overflow-hidden rounded-2xl border bg-white dark:bg-[#0c0c0c] transition-all duration-300 shadow-sm dark:shadow-xl ${isActive ? "border-black/10 dark:border-white/[0.08]" : "border-red-500/20 opacity-75"
+                  }`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.08 }}
@@ -222,11 +220,10 @@ export default function AdminCollectionsPage() {
                     <button
                       onClick={() => handleToggleActive(col)}
                       disabled={isTogglingThis}
-                      className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase backdrop-blur-md transition-all border ${
-                        isActive
+                      className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-bold uppercase backdrop-blur-md transition-all border ${isActive
                           ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
                           : "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                      }`}
+                        }`}
                       title={isActive ? "Click to disable collection" : "Click to activate collection"}
                     >
                       {isTogglingThis ? (
@@ -253,10 +250,10 @@ export default function AdminCollectionsPage() {
                 </div>
 
                 {/* Card Controls & Details Bar */}
-                <div className="flex items-center justify-between p-4 bg-white/[0.02] border-t border-white/[0.04]">
-                  <div className="text-xs text-white/40 flex items-center gap-1">
+                <div className="flex items-center justify-between p-4 bg-neutral-50/70 dark:bg-white/[0.02] border-t border-black/5 dark:border-white/[0.04]">
+                  <div className="text-xs text-neutral-500 dark:text-white/40 flex items-center gap-1">
                     <span>Target Link:</span>
-                    <span className="text-white/80 font-mono text-[11px] bg-white/5 px-2 py-0.5 rounded">
+                    <span className="text-neutral-800 dark:text-white/80 font-mono text-[11px] bg-neutral-100 dark:bg-white/5 border border-black/5 dark:border-transparent px-2 py-0.5 rounded">
                       {col.link || "/shop"}
                     </span>
                   </div>
@@ -414,22 +411,20 @@ export default function AdminCollectionsPage() {
                     <button
                       type="button"
                       onClick={() => setForm({ ...form, isActive: true })}
-                      className={`flex items-center justify-center gap-2 rounded-lg py-2.5 px-3 text-xs font-bold uppercase transition-all border ${
-                        form.isActive
+                      className={`flex items-center justify-center gap-2 rounded-lg py-2.5 px-3 text-xs font-bold uppercase transition-all border ${form.isActive
                           ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/50 shadow-sm"
                           : "bg-white/5 text-white/40 border-white/10 hover:text-white"
-                      }`}
+                        }`}
                     >
                       <CheckCircle2 size={14} /> Active on Website
                     </button>
                     <button
                       type="button"
                       onClick={() => setForm({ ...form, isActive: false })}
-                      className={`flex items-center justify-center gap-2 rounded-lg py-2.5 px-3 text-xs font-bold uppercase transition-all border ${
-                        !form.isActive
+                      className={`flex items-center justify-center gap-2 rounded-lg py-2.5 px-3 text-xs font-bold uppercase transition-all border ${!form.isActive
                           ? "bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm"
                           : "bg-white/5 text-white/40 border-white/10 hover:text-white"
-                      }`}
+                        }`}
                     >
                       <XCircle size={14} /> Hidden / Disabled
                     </button>

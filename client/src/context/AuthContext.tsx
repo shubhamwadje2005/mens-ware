@@ -6,13 +6,14 @@ import { User, Address } from "@/types";
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  loading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (name: string, email: string, password: string, phone?: string, avatar?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  updateProfile: (data: Partial<User> & { password?: string }) => Promise<{ success: boolean; error?: string }>;
-  addAddress: (address: Omit<Address, "id">) => void;
-  updateAddress: (id: string, address: Partial<Address>) => void;
-  removeAddress: (id: string) => void;
+  updateProfile: (data: Partial<User> & { password?: string; removeAvatar?: boolean }) => Promise<{ success: boolean; error?: string }>;
+  addAddress: (address: Omit<Address, "id">) => Promise<Address[] | void> | void;
+  updateAddress: (id: string, address: Partial<Address>) => Promise<void> | void;
+  removeAddress: (id: string) => Promise<void> | void;
   setDefaultAddress: (id: string) => void;
 }
 
@@ -44,18 +45,35 @@ import { getBaseUrl } from "@/config/api";
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setMounted(true);
     const token = localStorage.getItem("token");
     const saved = localStorage.getItem("noir-current-user");
+    let cachedPwd = localStorage.getItem("noir-user-pwd");
+    // Clean up any accidentally cached admin password
+    if (cachedPwd === "admin@3428") {
+      localStorage.removeItem("noir-user-pwd");
+      cachedPwd = null;
+    }
+
     if (saved) {
       try {
-        setUser(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (parsed.savedPassword === "admin@3428") {
+          delete parsed.savedPassword;
+        }
+        if (!parsed.savedPassword && cachedPwd) {
+          parsed.savedPassword = cachedPwd;
+        }
+        setUser(parsed);
       } catch {
         setUser(null);
       }
     }
+    setLoading(false);
+
     if (token) {
       const API_BASE = getBaseUrl();
       fetch(`${API_BASE.replace(/\/$/, "")}/auth/profile`, {
@@ -66,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (res.status === 401) {
               localStorage.removeItem("token");
               localStorage.removeItem("noir-current-user");
+              localStorage.removeItem("noir-user-pwd");
               setUser(null);
             }
             return null;
@@ -74,17 +93,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
         .then((data) => {
           if (data) {
+            let pwd = localStorage.getItem("noir-user-pwd") || undefined;
+            if (pwd === "admin@3428") {
+              localStorage.removeItem("noir-user-pwd");
+              pwd = undefined;
+            }
+            if (!pwd) {
+              const users = getStoredUsers();
+              const found = users.find(
+                (u) => u.email.toLowerCase() === data.email?.toLowerCase()
+              );
+              if (found?.password && found.password !== "admin@3428") {
+                pwd = found.password;
+                localStorage.setItem("noir-user-pwd", pwd);
+              }
+            }
             const userObj = {
               _id: data._id || data.id,
               id: data._id || data.id,
               name: data.name,
               email: data.email,
-              phone: data.phone,
+              phone: data.phone || (data.addresses && data.addresses[0]?.phone) || "",
               avatar: data.avatar,
               role: data.role,
+              savedPassword: pwd,
               addresses: data.addresses || [],
             };
             setUser(userObj);
+            localStorage.setItem("noir-current-user", JSON.stringify(userObj));
           }
         })
         .catch(() => {});
@@ -102,111 +138,99 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     try {
       const API_BASE = getBaseUrl();
-      const res = await fetch(`${API_BASE}/auth/login`, {
+      const res = await fetch(`${API_BASE.replace(/\/$/, "")}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
       if (!res.ok) {
-        // Fallback to local storage users if offline / dev mock
-        const users = getStoredUsers();
-        const found = users.find(
-          (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-        );
-        if (found) {
-          const { password: _, ...userData } = found;
-          setUser(userData);
-          return { success: true };
-        }
-        return { success: false, error: data.message || "Invalid credentials" };
+        return { success: false, error: data.message || "Login failed" };
       }
-      if (data.token) {
-        localStorage.setItem("token", data.token);
+      localStorage.setItem("token", data.token);
+      let pwdToSave = password;
+      if (email === "shubhamwadje2005@gmail.com" || password === "admin@3428") {
+        pwdToSave = "";
+      }
+      if (pwdToSave) {
+        localStorage.setItem("noir-user-pwd", pwdToSave);
+      } else {
+        localStorage.removeItem("noir-user-pwd");
       }
       const userObj = {
-        _id: data.user.id || data.user._id,
-        id: data.user.id || data.user._id,
+        _id: data.user._id || data.user.id,
+        id: data.user._id || data.user.id,
         name: data.user.name,
         email: data.user.email,
-        phone: data.user.phone,
+        phone: data.user.phone || (data.user.addresses && data.user.addresses[0]?.phone) || "",
         avatar: data.user.avatar,
         role: data.user.role,
+        savedPassword: pwdToSave || undefined,
         addresses: data.user.addresses || [],
       };
       setUser(userObj);
+      localStorage.setItem("noir-current-user", JSON.stringify(userObj));
       return { success: true };
-    } catch {
-      // Offline fallback
-      const users = getStoredUsers();
-      const found = users.find(
-        (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-      );
-      if (found) {
-        const { password: _, ...userData } = found;
-        setUser(userData);
-        return { success: true };
-      }
-      return { success: false, error: "Server unreachable" };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Network error" };
     }
   }, []);
 
-  const register = useCallback(async (name: string, email: string, password: string) => {
-    try {
-      const API_BASE = getBaseUrl();
-      const res = await fetch(`${API_BASE}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        return { success: false, error: data.message || "Registration failed" };
-      }
-      if (data.token) {
+  const register = useCallback(
+    async (
+      name: string,
+      email: string,
+      password: string,
+      phone?: string,
+      avatar?: string
+    ) => {
+      try {
+        const API_BASE = getBaseUrl();
+        const res = await fetch(`${API_BASE.replace(/\/$/, "")}/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password, phone, avatar }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          return { success: false, error: data.message || "Registration failed" };
+        }
         localStorage.setItem("token", data.token);
+        if (password && password !== "admin@3428") {
+          localStorage.setItem("noir-user-pwd", password);
+        }
+        const userObj = {
+          _id: data.user._id || data.user.id,
+          id: data.user._id || data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          phone: data.user.phone || phone || "",
+          avatar: data.user.avatar || avatar,
+          role: data.user.role,
+          savedPassword: password && password !== "admin@3428" ? password : undefined,
+          addresses: data.user.addresses || [],
+        };
+        setUser(userObj);
+        localStorage.setItem("noir-current-user", JSON.stringify(userObj));
+        return { success: true };
+      } catch (err: any) {
+        return { success: false, error: err.message || "Network error" };
       }
-      const userObj = {
-        _id: data.user.id || data.user._id,
-        id: data.user.id || data.user._id,
-        name: data.user.name,
-        email: data.user.email,
-        role: data.user.role,
-        addresses: data.user.addresses || [],
-      };
-      setUser(userObj);
-      return { success: true };
-    } catch {
-      // Fallback local storage
-      const users = getStoredUsers();
-      if (users.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
-        return { success: false, error: "Email already registered" };
-      }
-      const newUser: StoredUser = {
-        _id: Date.now().toString(),
-        id: Date.now().toString(),
-        name,
-        email,
-        password,
-        addresses: [],
-      };
-      users.push(newUser);
-      saveStoredUsers(users);
-      const { password: _, ...userData } = newUser;
-      setUser(userData);
-      return { success: true };
-    }
-  }, []);
+    },
+    []
+  );
 
   const logout = useCallback(() => {
+    setUser(null);
     localStorage.removeItem("token");
     localStorage.removeItem("noir-current-user");
-    setUser(null);
+    localStorage.removeItem("noir-user-pwd");
   }, []);
 
   const updateProfile = useCallback(
-    async (data: Partial<User> & { password?: string }) => {
+    async (data: Partial<User> & { password?: string; removeAvatar?: boolean }) => {
       if (!user) return { success: false, error: "Not authenticated" };
+
       const token = localStorage.getItem("token");
       if (token) {
         try {
@@ -217,42 +241,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify(data),
+            body: JSON.stringify({
+              name: data.name,
+              phone: data.phone,
+              avatar: data.avatar,
+              password: data.password || undefined,
+              removeAvatar: data.removeAvatar,
+            }),
           });
-          const contentType = res.headers.get("content-type");
-          let resData: any = {};
-          if (contentType && contentType.includes("application/json")) {
-            resData = await res.json();
-          } else {
-            const rawText = await res.text();
+          const resData = await res.json();
+          if (!res.ok) {
             return {
               success: false,
-              error: rawText.includes("Payload Too Large")
-                ? "Image file is too large. Please select a smaller photo."
-                : `Server returned invalid response (${res.status}).`,
+              error: resData.message || "Failed to update profile",
             };
           }
-          if (!res.ok) {
-            return { success: false, error: resData.message || "Failed to update profile" };
+          let pwd = data.password || user.savedPassword;
+          if (pwd === "admin@3428") {
+            pwd = undefined;
+            localStorage.removeItem("noir-user-pwd");
+          } else if (pwd) {
+            localStorage.setItem("noir-user-pwd", pwd);
           }
-          const userObj = {
-            _id: resData._id || resData.id,
-            id: resData._id || resData.id,
-            name: resData.name,
-            email: resData.email,
-            phone: resData.phone,
-            avatar: resData.avatar,
-            role: resData.role,
-            addresses: resData.addresses || [],
+          const updated: User = {
+            ...user,
+            name: resData.name || data.name || user.name,
+            phone: resData.phone !== undefined ? resData.phone : (data.phone ?? user.phone),
+            avatar: resData.avatar !== undefined ? resData.avatar : (data.avatar ?? user.avatar),
+            savedPassword: pwd,
+            addresses: resData.addresses || user.addresses,
           };
-          setUser(userObj);
+          setUser(updated);
           return { success: true };
         } catch (err: any) {
-          return { success: false, error: err.message || "Failed to update profile" };
+          return {
+            success: false,
+            error: err.message || "Network error during profile update",
+          };
         }
       } else {
-        const { password: _, ...profileData } = data;
-        const updated = { ...user, ...profileData };
+        const updated: User = {
+          ...user,
+          ...data,
+          phone: data.phone ?? user.phone,
+          savedPassword: data.password || user.savedPassword,
+        };
         setUser(updated);
         return { success: true };
       }
@@ -261,57 +294,80 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const addAddress = useCallback(
-    (address: Omit<Address, "id">) => {
+    async (address: Omit<Address, "id">) => {
       if (!user) return;
-      const newAddress: Address = { ...address, id: Date.now().toString() };
+      const tempId = Date.now().toString();
+      const newAddress: Address = { ...address, id: tempId, _id: tempId };
       const updated = { ...user, addresses: [...user.addresses, newAddress] };
       setUser(updated);
 
       const token = localStorage.getItem("token");
       if (token) {
-        const API_BASE = getBaseUrl();
-        fetch(`${API_BASE}/auth/address`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(address),
-        }).catch(() => {});
+        try {
+          const API_BASE = getBaseUrl();
+          const res = await fetch(`${API_BASE}/auth/address`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(address),
+          });
+          if (res.ok) {
+            const serverAddresses = await res.json();
+            if (Array.isArray(serverAddresses)) {
+              setUser((prev) => (prev ? { ...prev, addresses: serverAddresses } : prev));
+              return serverAddresses;
+            }
+          }
+        } catch (err) {
+          console.error("Failed to sync added address with server:", err);
+        }
       }
+      return updated.addresses;
     },
     [user]
   );
 
   const updateAddress = useCallback(
-    (id: string, addressData: Partial<Address>) => {
+    async (id: string, addressData: Partial<Address>) => {
       if (!user) return;
       const updated = {
         ...user,
         addresses: user.addresses.map((a) =>
-          (a._id || a.id) === id ? { ...a, ...addressData } : a
+          ((a._id && a._id === id) || (a.id && a.id === id)) ? { ...a, ...addressData } : a
         ),
       };
       setUser(updated);
 
       const token = localStorage.getItem("token");
       if (token && id.length === 24) {
-        const API_BASE = getBaseUrl();
-        fetch(`${API_BASE}/auth/address/${id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(addressData),
-        }).catch(() => {});
+        try {
+          const API_BASE = getBaseUrl();
+          const res = await fetch(`${API_BASE}/auth/address/${id}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(addressData),
+          });
+          if (res.ok) {
+            const serverAddresses = await res.json();
+            if (Array.isArray(serverAddresses)) {
+              setUser((prev) => (prev ? { ...prev, addresses: serverAddresses } : prev));
+            }
+          }
+        } catch (err) {
+          console.error("Failed to sync updated address with server:", err);
+        }
       }
     },
     [user]
   );
 
   const removeAddress = useCallback(
-    (id: string) => {
+    async (id: string) => {
       if (!user) return;
       const updated = {
         ...user,
@@ -321,11 +377,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const token = localStorage.getItem("token");
       if (token && id.length === 24) {
-        const API_BASE = getBaseUrl();
-        fetch(`${API_BASE}/auth/address/${id}`, {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }).catch(() => {});
+        try {
+          const API_BASE = getBaseUrl();
+          const res = await fetch(`${API_BASE}/auth/address/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const serverAddresses = await res.json();
+            if (Array.isArray(serverAddresses)) {
+              setUser((prev) => (prev ? { ...prev, addresses: serverAddresses } : prev));
+            }
+          }
+        } catch (err) {
+          console.error("Failed to remove address on server:", err);
+        }
       }
     },
     [user]
@@ -342,6 +408,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })),
       };
       setUser(updated);
+
+      const token = localStorage.getItem("token");
+      if (token && id.length === 24) {
+        const API_BASE = getBaseUrl();
+        fetch(`${API_BASE}/auth/address/${id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ isDefault: true }),
+        }).catch(() => {});
+      }
     },
     [user]
   );
@@ -351,6 +430,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isAuthenticated: !!user,
+        loading,
         login,
         register,
         logout,

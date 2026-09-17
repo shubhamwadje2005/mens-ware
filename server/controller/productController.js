@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Product = require("../modal/Product");
 
 // Helper to generate a clean slug
@@ -62,7 +63,13 @@ exports.getProductBySlug = async (req, res) => {
 
 exports.getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    let product = null;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      product = await Product.findById(req.params.id);
+    }
+    if (!product) {
+      product = await Product.findOne({ slug: req.params.id, isDeleted: { $ne: true } });
+    }
     if (!product) return res.status(404).json({ message: "Product not found" });
     res.json(product);
   } catch (err) {
@@ -104,6 +111,17 @@ exports.createProduct = async (req, res) => {
       }
       if (primaryUrl) {
         data.image = primaryUrl;
+        const primaryIdx = data.images.findIndex((img) => img.url === primaryUrl || img.isPrimary);
+        if (primaryIdx > 0) {
+          const [pri] = data.images.splice(primaryIdx, 1);
+          pri.isPrimary = true;
+          data.images.unshift(pri);
+        }
+        data.images.forEach((img, i) => {
+          img.isPrimary = i === 0;
+          img.sortOrder = i;
+        });
+
       }
     } else if (data.image) {
       data.images = [
@@ -216,7 +234,6 @@ exports.updateProduct = async (req, res) => {
       let primaryUrl = null;
       data.images = data.images.map((img, idx) => {
         if (typeof img === "string") {
-          if (idx === 0 && !primaryUrl) primaryUrl = img;
           return {
             url: img.trim(),
             type: img.startsWith("data:") ? "upload" : "url",
@@ -241,6 +258,18 @@ exports.updateProduct = async (req, res) => {
       }
       if (primaryUrl) {
         data.image = primaryUrl;
+        // Ensure primary image is at the very beginning of the images array
+        const primaryIdx = data.images.findIndex((img) => img.url === primaryUrl || img.isPrimary);
+        if (primaryIdx > 0) {
+          const [pri] = data.images.splice(primaryIdx, 1);
+          pri.isPrimary = true;
+          data.images.unshift(pri);
+        }
+        data.images.forEach((img, i) => {
+          img.isPrimary = i === 0;
+          img.sortOrder = i;
+        });
+
       }
     }
 
@@ -253,6 +282,13 @@ exports.updateProduct = async (req, res) => {
     }
     if (data.originalPrice !== undefined && data.originalPrice !== "") {
       data.originalPrice = Number(data.originalPrice);
+    }
+
+    // Auto calculate discount percentage
+    if (data.originalPrice && data.price && data.originalPrice > data.price) {
+      data.discount = Math.round(((data.originalPrice - data.price) / data.originalPrice) * 100);
+    } else if (data.price !== undefined) {
+      data.discount = 0;
     }
 
     // Process and validate variants if updated
@@ -290,10 +326,14 @@ exports.updateProduct = async (req, res) => {
       }
 
       data.stock = totalStock;
-
-      // Sync colors and sizes arrays
-      data.colors = Array.from(new Set(data.variants.map((v) => v.color)));
       data.sizes = Array.from(new Set(data.variants.map((v) => v.size)));
+    }
+
+    // Strictly sync colors array with colorOptions if provided, else variants
+    if (Array.isArray(data.colorOptions) && data.colorOptions.length > 0) {
+      data.colors = data.colorOptions.map((c) => c.name);
+    } else if (Array.isArray(data.variants) && data.variants.length > 0) {
+      data.colors = Array.from(new Set(data.variants.map((v) => v.color)));
     }
 
     const product = await Product.findByIdAndUpdate(req.params.id, data, {
@@ -311,7 +351,7 @@ exports.deleteProduct = async (req, res) => {
   try {
     const product = await Product.findByIdAndUpdate(
       req.params.id,
-      { isDeleted: true, isActive: false, deletedAt: new Date() },
+      { isDeleted: true, isActive: false, isAvailable: false, status: "Inactive", deletedAt: new Date() },
       { new: true }
     );
     if (!product) return res.status(404).json({ message: "Product not found" });
@@ -334,7 +374,7 @@ exports.restoreProduct = async (req, res) => {
   try {
     const product = await Product.findByIdAndUpdate(
       req.params.id,
-      { isDeleted: false, isActive: true, deletedAt: null },
+      { isDeleted: false, isActive: true, isAvailable: true, status: "Active", deletedAt: null },
       { new: true }
     );
     if (!product) return res.status(404).json({ message: "Product not found" });

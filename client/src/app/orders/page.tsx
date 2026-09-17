@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useOrders } from "@/context/OrderContext";
 import { useGetUserOrdersQuery } from "@/redux/api/order.api";
 import { Package, ArrowLeft, Truck, CheckCircle, Clock, Loader2 } from "lucide-react";
+import { UserOrdersSkeleton } from "@/components/ui/StoreSkeletons";
 
 const SmoothScrollProvider = dynamic(() => import("@/components/layout/SmoothScrollProvider"), { ssr: false });
 const CursorFollower = dynamic(() => import("@/components/cursor/CursorFollower"), { ssr: false });
@@ -24,7 +25,24 @@ export default function OrdersPage() {
     pollingInterval: 10000,
   });
 
-  const orders = apiOrders.length > 0 ? apiOrders : contextOrders;
+  const orders = React.useMemo(() => {
+    const map = new Map<string, any>();
+    apiOrders.forEach((o) => {
+      const id = o._id || o.id;
+      if (id) map.set(id, o);
+    });
+    contextOrders.forEach((o) => {
+      const id = o._id || o.id;
+      if (id && !map.has(id)) {
+        map.set(id, o);
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [apiOrders, contextOrders]);
 
   if (!isAuthenticated) {
     return (
@@ -81,9 +99,7 @@ export default function OrdersPage() {
             </h1>
 
             {isLoading ? (
-              <div className="flex h-[50vh] items-center justify-center">
-                <Loader2 size={36} className="animate-spin text-[#ff6b00]" />
-              </div>
+              <UserOrdersSkeleton count={3} />
             ) : orders.length === 0 ? (
               <div className="text-center py-16">
                 <Package size={64} className="mx-auto mb-6 text-white/10" />
@@ -136,9 +152,13 @@ export default function OrdersPage() {
                                         </span>
                                       )}
                                       {item.selectedColor && (
-                                        <div className="flex items-center gap-1">
+                                        <div className="flex items-center gap-1.5">
                                           <span className="text-[9px] text-white/40">Color:</span>
-                                          <span className="h-3 w-3 rounded-full border border-white/20" style={{ backgroundColor: item.selectedColor }} />
+                                          <span
+                                            className="h-2.5 w-2.5 rounded-full border border-white/20 shrink-0"
+                                            style={{ backgroundColor: item.colorCode || (item.selectedColor.startsWith("#") ? item.selectedColor : "#888") }}
+                                          />
+                                          <span className="text-[9px] font-medium text-white/80">{item.selectedColor}</span>
                                         </div>
                                       )}
                                     </div>

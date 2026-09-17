@@ -5,7 +5,7 @@ import { Order, CartItem, Address, OrderItem } from "@/types";
 
 interface OrderContextType {
   orders: Order[];
-  createOrder: (items: CartItem[], total: number, address: Address, paymentMethod: string) => Order;
+  createOrder: (items: CartItem[], total: number, address: Address, paymentMethod: string, orderId?: string) => Order;
   getOrder: (id: string) => Order | undefined;
 }
 
@@ -15,24 +15,32 @@ export function OrderProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<Order[]>([]);
 
   const createOrder = useCallback(
-    (items: CartItem[], total: number, address: Address, paymentMethod: string): Order => {
+    (items: CartItem[], total: number, address: Address, paymentMethod: string, orderId?: string): Order => {
+      const id = orderId || Date.now().toString();
       const orderItems: OrderItem[] = items.map((item) => ({
         product: item.product,
+        name: item.product.name,
+        image: typeof item.image === "object" ? (item.image as any)?.url || item.product.image : (item.image || item.product.image),
+        slug: item.product.slug,
+        sku: item.sku,
+        variantId: item.variantId,
+        colorCode: item.colorCode,
         quantity: item.quantity,
         selectedSize: item.selectedSize,
         selectedColor: item.selectedColor,
-        price: item.product.price,
+        price: item.price !== undefined ? item.price : item.product.price,
       }));
 
       const order: Order = {
-        _id: Date.now().toString(),
-        id: Date.now().toString(),
+        _id: id,
+        id,
         user: "",
         items: orderItems,
         total,
         status: "confirmed",
         address,
         paymentMethod,
+        createdAt: new Date().toISOString(),
       };
       setOrders((prev) => [order, ...prev]);
       return order;

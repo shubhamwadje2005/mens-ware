@@ -11,6 +11,7 @@ import {
 } from "@/redux/api/campaign.api";
 import { Plus, Edit2, Trash2, X, Save, CheckCircle2, Eye, Sparkles, Image as ImageIcon, Loader2 } from "lucide-react";
 import ImageInputWithPreview from "@/components/admin/ImageInputWithPreview";
+import { CampaignCardsSkeleton } from "@/components/admin/AdminSkeletons";
 
 export default function AdminCampaignPage() {
   const { data, isLoading } = useGetAllCampaignsQuery();
@@ -167,9 +168,7 @@ export default function AdminCampaignPage() {
 
       {/* Campaigns List */}
       {isLoading ? (
-        <div className="flex h-64 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-[#ff6b00]" />
-        </div>
+        <CampaignCardsSkeleton count={2} />
       ) : campaigns.length === 0 ? (
         <div className="rounded-2xl border border-white/[0.08] bg-[#0c0c0c] p-12 text-center">
           <ImageIcon className="mx-auto mb-4 h-12 w-12 text-white/20" />
@@ -192,8 +191,8 @@ export default function AdminCampaignPage() {
               key={camp._id}
               className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 ${
                 camp.isActive
-                  ? "border-[#ff6b00]/60 bg-[#121212] shadow-[0_10px_35px_rgba(255,107,0,0.15)]"
-                  : "border-white/[0.08] bg-[#0a0a0a]"
+                  ? "border-[#ff6b00]/60 bg-white dark:bg-[#121212] shadow-[0_8px_30px_rgba(255,107,0,0.12)]"
+                  : "border-black/10 dark:border-white/[0.08] bg-white dark:bg-[#0a0a0a] shadow-sm"
               }`}
             >
               {/* Preview Banner */}
@@ -207,7 +206,7 @@ export default function AdminCampaignPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
 
                 {/* Overlay Text Preview */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                <div className="preserve-white absolute inset-0 flex flex-col items-center justify-center p-6 text-center" data-overlay="true">
                   <span className="mb-1 text-[9px] font-bold tracking-[0.3em] text-[#ff6b00] uppercase sm:text-[10px]">
                     {camp.subtitle}
                   </span>
@@ -238,13 +237,13 @@ export default function AdminCampaignPage() {
               </div>
 
               {/* Bottom Actions Bar */}
-              <div className="flex items-center justify-between border-t border-white/[0.06] p-4 sm:p-5">
+              <div className="flex items-center justify-between border-t border-black/10 dark:border-white/[0.06] p-4 sm:p-5 bg-neutral-50/50 dark:bg-transparent">
                 <button
                   type="button"
                   onClick={() => handleToggleActive(camp)}
                   className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-all ${
                     camp.isActive
-                      ? "border border-white/20 bg-white/5 text-white/70 hover:bg-white/10"
+                      ? "border border-black/15 dark:border-white/20 bg-neutral-100 dark:bg-white/5 text-neutral-700 dark:text-white/70 hover:bg-neutral-200 dark:hover:bg-white/10"
                       : "bg-[#ff6b00] text-black hover:bg-[#ff7a1a]"
                   }`}
                 >

@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { Address } from "@/types";
+import { Address, User } from "@/types";
 import {
   User as UserIcon,
   MapPin,
@@ -19,7 +19,6 @@ import {
   Loader2,
   Phone,
   Mail,
-  ShieldCheck,
   Camera,
   Upload,
   Lock,
@@ -37,24 +36,15 @@ const Navbar = dynamic(() => import("@/components/navbar/Navbar"));
 const Footer = dynamic(() => import("@/components/footer/Footer"));
 const ToastContainer = dynamic(() => import("@/components/toast/ToastContainer"));
 const SearchModal = dynamic(() => import("@/components/search/SearchModal"));
+import { UserProfileSkeleton } from "@/components/ui/StoreSkeletons";
 
 function ProfileContent() {
-  const { user, isAuthenticated, updateProfile, addAddress, updateAddress, removeAddress, setDefaultAddress } = useAuth();
+  const { user, isAuthenticated, loading, updateProfile, addAddress, updateAddress, removeAddress, setDefaultAddress } = useAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const isRequired = searchParams.get("required") === "true";
   const [activeTab, setActiveTab] = useState<"profile" | "addresses">("profile");
-
-  useEffect(() => {
-    const tabParam = searchParams.get("tab");
-    if (tabParam === "addresses" || isRequired) {
-      setActiveTab("addresses");
-      if (isRequired && (!user?.addresses || user.addresses.length === 0)) {
-        setShowAddressModal(true);
-      }
-    }
-  }, [searchParams, isRequired, user]);
 
   // Profile form state
   const [isEditing, setIsEditing] = useState(false);
@@ -64,6 +54,7 @@ function ProfileContent() {
   const [avatar, setAvatar] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showViewPassword, setShowViewPassword] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -71,13 +62,81 @@ function ProfileContent() {
 
   // Address editing state
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [addressForm, setAddressForm] = useState({
+    name: "",
+    phone: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    state: "",
+    pincode: "",
+    isDefault: false,
+  });
+
+  const [isAvatarRemoved, setIsAvatarRemoved] = useState(false);
+
+  const getCleanCachedPassword = (u: any) => {
+    if (u?.savedPassword && u.savedPassword !== "admin@3428") return u.savedPassword;
+    if (typeof window !== "undefined") {
+      const p = localStorage.getItem("noir-user-pwd");
+      if (p && p !== "admin@3428") return p;
+    }
+    return "";
+  };
+
+  const handleStartEdit = () => {
+    if (user) {
+      setName(user.name || "");
+      setEmail(user.email || "");
+      setPhone(user.phone || (user.addresses && user.addresses[0]?.phone) || "");
+      setAvatar(user.avatar || "");
+      setPassword(getCleanCachedPassword(user));
+    }
+    setProfileError(null);
+    setIsAvatarRemoved(false);
+    setIsEditing(true);
+  };
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    const editParam = searchParams.get("edit");
+    if (tabParam === "addresses" || isRequired) {
+      setActiveTab("addresses");
+      if (isRequired && (!user?.addresses || user.addresses.length === 0)) {
+        setShowAddressModal(true);
+      }
+    } else {
+      setActiveTab("profile");
+    }
+
+    if (editParam === "true") {
+      handleStartEdit();
+    } else if (editParam === "false") {
+      setIsEditing(false);
+    }
+  }, [searchParams, isRequired, user]);
+
+  useEffect(() => {
+    const handleAction = (e: any) => {
+      if (e.detail?.tab) setActiveTab(e.detail.tab);
+      if (e.detail?.edit === true) {
+        handleStartEdit();
+      } else if (e.detail?.edit === false) {
+        setIsEditing(false);
+      }
+    };
+    window.addEventListener("noir:profile-action", handleAction);
+    return () => window.removeEventListener("noir:profile-action", handleAction);
+  }, [user]);
 
   useEffect(() => {
     if (user) {
       setName(user.name || "");
       setEmail(user.email || "");
-      setPhone(user.phone || "");
+      setPhone(user.phone || (user.addresses && user.addresses[0]?.phone) || "");
       setAvatar(user.avatar || "");
+      setPassword(getCleanCachedPassword(user));
     }
   }, [user]);
 
@@ -85,11 +144,12 @@ function ProfileContent() {
     if (user) {
       setName(user.name || "");
       setEmail(user.email || "");
-      setPhone(user.phone || "");
+      setPhone(user.phone || (user.addresses && user.addresses[0]?.phone) || "");
       setAvatar(user.avatar || "");
+      setPassword(getCleanCachedPassword(user));
     }
-    setPassword("");
     setProfileError(null);
+    setIsAvatarRemoved(false);
     setIsEditing(false);
   };
 
@@ -127,6 +187,7 @@ function ProfileContent() {
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setIsAvatarRemoved(false);
       const reader = new FileReader();
       reader.onloadend = () => {
         const img = new Image();
@@ -165,54 +226,57 @@ function ProfileContent() {
     }
   };
 
-  // New Address modal state
-  const [showAddressModal, setShowAddressModal] = useState(false);
-  const [addressForm, setAddressForm] = useState({
-    name: "",
-    phone: "",
-    addressLine1: "",
-    addressLine2: "",
-    city: "",
-    state: "",
-    pincode: "",
-    isDefault: false,
-  });
-
-  if (!isAuthenticated) {
-    return (
-      <SmoothScrollProvider>
-        <CursorFollower />
-        <Navbar />
-        <SearchModal />
-        <ToastContainer />
-        <main className="min-h-screen bg-black pt-32 pb-20 flex items-center justify-center">
-          <div className="text-center px-5">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-              <UserIcon size={64} className="mx-auto mb-6 text-white/10" />
-              <h1 className="text-3xl font-light text-white mb-3">Sign In Required</h1>
-              <p className="text-white/40 mb-8">Please sign in to manage your profile and saved addresses.</p>
-              <Link href="/auth?redirect=/profile" className="btn-pill btn-pill-gold">
-                Sign In
-              </Link>
-            </motion.div>
-          </div>
-        </main>
-      </SmoothScrollProvider>
-    );
-  }
-
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingProfile(true);
     setProfileSuccess(false);
     setProfileError(null);
 
-    const res = await updateProfile({ name, email, phone, avatar, password });
+    const cleanPhone = phone ? phone.replace(/\D/g, "").slice(0, 10) : "";
+    if (cleanPhone && cleanPhone.length !== 10) {
+      setProfileError("Phone number must be exactly 10 digits.");
+      setSavingProfile(false);
+      return;
+    }
+
+    const finalPassword = password ? password.trim() : "";
+    if (finalPassword && finalPassword !== user?.savedPassword && finalPassword.length < 6) {
+      setProfileError("Password must be at least 6 characters.");
+      setSavingProfile(false);
+      return;
+    }
+
+    // Keep previously saved data if the field in the form is not touched or blank
+    const finalName = name && name.trim() !== "" ? name.trim() : (user?.name || "");
+    const finalEmail = email && email.trim() !== "" ? email.trim() : (user?.email || "");
+    const finalPhone = cleanPhone ? cleanPhone : (user?.phone || "");
+    const finalAvatar = isAvatarRemoved
+      ? ""
+      : avatar && avatar.trim() !== ""
+      ? avatar.trim()
+      : user?.avatar || "";
+
+    const payload: Partial<User> & { password?: string; removeAvatar?: boolean } = {
+      name: finalName,
+      email: finalEmail,
+      phone: finalPhone,
+      avatar: finalAvatar,
+      removeAvatar: isAvatarRemoved,
+    };
+
+    if (finalPassword && finalPassword !== user?.savedPassword && finalPassword !== "admin@3428") {
+      payload.password = finalPassword;
+    }
+
+    const res = await updateProfile(payload);
     setSavingProfile(false);
 
     if (res.success) {
-      setPassword("");
+      if (finalPassword) {
+        setPassword(finalPassword);
+      }
       setIsEditing(false);
+      setIsAvatarRemoved(false);
       setProfileSuccess(true);
       setTimeout(() => setProfileSuccess(false), 4000);
     } else {
@@ -222,10 +286,16 @@ function ProfileContent() {
 
   const handleAddAddressSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanAddressPhone = addressForm.phone.replace(/\D/g, "").slice(0, 10);
+    if (cleanAddressPhone.length !== 10) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+    const cleanAddressForm = { ...addressForm, phone: cleanAddressPhone };
     if (editingAddressId) {
-      updateAddress(editingAddressId, addressForm);
+      updateAddress(editingAddressId, cleanAddressForm);
     } else {
-      addAddress(addressForm);
+      addAddress(cleanAddressForm);
     }
     setShowAddressModal(false);
     setEditingAddressId(null);
@@ -246,33 +316,76 @@ function ProfileContent() {
     }
   };
 
+  if (loading) {
+    return (
+      <SmoothScrollProvider>
+        <CursorFollower />
+        <Navbar />
+        <main className="min-h-screen bg-[#f8f7f2] dark:bg-black pt-24 sm:pt-32 pb-20">
+          <UserProfileSkeleton />
+        </main>
+        <Footer />
+      </SmoothScrollProvider>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
+    return (
+      <SmoothScrollProvider>
+        <CursorFollower />
+        <Navbar />
+        <SearchModal />
+        <ToastContainer />
+        <main className="min-h-screen bg-[#f8f7f2] dark:bg-black pt-32 pb-20 flex items-center justify-center">
+          <div className="text-center px-5 max-w-md mx-auto">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#ff6b00]/10 border border-[#ff6b00]/30 text-[#ff6b00]">
+                <UserIcon size={36} />
+              </div>
+              <h1 className="text-3xl font-light text-neutral-900 dark:text-white mb-3">Sign In Required</h1>
+              <p className="text-neutral-600 dark:text-white/40 mb-8 text-sm leading-relaxed">
+                Please sign in with your customer account to view and manage your profile and delivery addresses.
+              </p>
+              <Link href="/auth?redirect=/profile" className="btn-pill btn-pill-gold">
+                Sign In to Your Account
+              </Link>
+            </motion.div>
+          </div>
+        </main>
+      </SmoothScrollProvider>
+    );
+  }
+
   return (
     <SmoothScrollProvider>
       <CursorFollower />
       <Navbar />
       <SearchModal />
       <ToastContainer />
-      <main className="min-h-screen bg-black pt-24 pb-16 sm:pt-32">
+      <main className="min-h-screen bg-[#f8f7f2] dark:bg-black pt-24 pb-16 sm:pt-32 transition-colors duration-300">
         <div className="mx-auto max-w-4xl px-5 sm:px-6">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             {/* Header */}
             <div className="mb-8">
-              <Link href="/" className="inline-flex items-center gap-2 text-sm text-white/40 hover:text-white mb-4 transition-colors">
+              <Link href="/" className="inline-flex items-center gap-2 text-sm text-neutral-500 dark:text-white/40 hover:text-neutral-900 dark:hover:text-white mb-4 transition-colors">
                 <ArrowLeft size={16} /> Back to Home
               </Link>
-              <h1 className="text-3xl font-light tracking-tight text-white sm:text-5xl">
+              <h1 className="text-3xl font-light tracking-tight text-neutral-900 dark:text-white sm:text-5xl">
                 My <span className="text-[#ff6b00]">Account</span>
               </h1>
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex items-center gap-3 border-b border-white/10 mb-8 pb-3">
+            <div className="flex items-center gap-3 border-b border-black/10 dark:border-white/10 mb-8 pb-3">
               <button
-                onClick={() => setActiveTab("profile")}
+                onClick={() => {
+                  setActiveTab("profile");
+                  setIsEditing(false);
+                }}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
                   activeTab === "profile"
                     ? "bg-[#ff6b00] text-black shadow-lg"
-                    : "text-white/50 hover:text-white hover:bg-white/5"
+                    : "text-neutral-600 dark:text-white/50 hover:text-neutral-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
                 }`}
               >
                 <UserIcon size={14} /> Personal Profile
@@ -282,14 +395,14 @@ function ProfileContent() {
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
                   activeTab === "addresses"
                     ? "bg-[#ff6b00] text-black shadow-lg"
-                    : "text-white/50 hover:text-white hover:bg-white/5"
+                    : "text-neutral-600 dark:text-white/50 hover:text-neutral-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
                 }`}
               >
                 <MapPin size={14} /> Saved Addresses ({user?.addresses?.length || 0})
               </button>
               <Link
                 href="/orders"
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/50 hover:text-white hover:bg-white/5 transition-all ml-auto"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-white/50 hover:text-neutral-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all ml-auto"
               >
                 <Package size={14} /> Order History
               </Link>
@@ -298,11 +411,11 @@ function ProfileContent() {
             {/* Tab Content: Profile Settings */}
             {activeTab === "profile" && (
               <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
-                <div className="rounded-2xl border border-white/[0.06] bg-[#0c0c0c] p-6 sm:p-8">
+                <div className="rounded-2xl border border-black/10 dark:border-white/[0.06] bg-white dark:bg-[#0c0c0c] shadow-sm dark:shadow-none p-6 sm:p-8 transition-colors duration-300">
                   {!isEditing ? (
                     /* View Mode */
                     <div>
-                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 mb-8 pb-8 border-b border-white/[0.06]">
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 mb-8 pb-8 border-b border-black/10 dark:border-white/[0.06]">
                         <div className="flex h-24 w-24 overflow-hidden items-center justify-center rounded-full bg-[#ff6b00]/10 text-[#ff6b00] border-2 border-[#ff6b00]/40 font-bold text-3xl shadow-xl">
                           {user?.avatar ? (
                             <img src={user.avatar} alt={user?.name} className="h-full w-full object-cover" />
@@ -314,44 +427,55 @@ function ProfileContent() {
                         </div>
 
                         <div className="text-center sm:text-left flex-1">
-                          <h2 className="text-2xl font-bold text-white mb-1">{user?.name}</h2>
-                          <p className="text-xs text-white/40 mb-3">{user?.email}</p>
-                          {user?.role === "admin" && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#ff6b00]/10 px-3 py-1 text-xs font-bold text-[#ff6b00] border border-[#ff6b00]/20">
-                              <ShieldCheck size={12} /> Admin Account
-                            </span>
-                          )}
+                          <h2 className="text-2xl font-bold text-neutral-900 dark:text-white mb-1">{user?.name}</h2>
+                          <p className="text-xs text-neutral-500 dark:text-white/40">{user?.email}</p>
                         </div>
                       </div>
 
                       {profileSuccess && (
-                        <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 text-xs text-emerald-400 mb-6">
+                        <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 text-xs text-emerald-600 dark:text-emerald-400 mb-6">
                           <CheckCircle size={16} /> All profile details updated successfully!
                         </div>
                       )}
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">Full Name</p>
-                          <p className="text-sm font-medium text-white">{user?.name}</p>
+                        <div className="rounded-xl border border-black/10 dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] p-4">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-1">Full Name</p>
+                          <p className="text-sm font-medium text-neutral-900 dark:text-white">{user?.name}</p>
                         </div>
-                        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">Email Address</p>
-                          <p className="text-sm font-medium text-white">{user?.email}</p>
+                        <div className="rounded-xl border border-black/10 dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] p-4">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-1">Email Address</p>
+                          <p className="text-sm font-medium text-neutral-900 dark:text-white">{user?.email}</p>
                         </div>
-                        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">Phone Number</p>
-                          <p className="text-sm font-medium text-white">{user?.phone || "Not set"}</p>
+                        <div className="rounded-xl border border-black/10 dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] p-4">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-1">Phone Number</p>
+                          <p className="text-sm font-medium text-neutral-900 dark:text-white">{user?.phone || "Not set"}</p>
                         </div>
-                        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">Password</p>
-                          <p className="text-sm font-medium text-white">••••••••</p>
+                        <div className="rounded-xl border border-black/10 dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] p-4 flex items-center justify-between">
+                          <div>
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-1">Password</p>
+                            <p className="text-sm font-medium text-neutral-900 dark:text-white font-mono tracking-wider">
+                              {user?.savedPassword && user.savedPassword !== "admin@3428"
+                                ? (showViewPassword ? user.savedPassword : "••••••••")
+                                : "••••••••"}
+                            </p>
+                          </div>
+                          {user?.savedPassword && user.savedPassword !== "admin@3428" && (
+                            <button
+                              type="button"
+                              onClick={() => setShowViewPassword(!showViewPassword)}
+                              className="p-1.5 rounded-lg text-neutral-400 dark:text-white/40 hover:text-neutral-900 dark:hover:text-white transition-colors"
+                              title={showViewPassword ? "Hide password" : "Show password"}
+                            >
+                              {showViewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                            </button>
+                          )}
                         </div>
                       </div>
 
                       <div>
                         <button
-                          onClick={() => setIsEditing(true)}
+                          onClick={handleStartEdit}
                           className="rounded-full bg-[#ff6b00] px-6 py-3 text-xs font-bold uppercase tracking-wider text-black hover:bg-[#ff7a1a] transition-colors inline-flex items-center gap-2 shadow-lg"
                         >
                           <Edit2 size={15} /> Update Profile
@@ -361,18 +485,18 @@ function ProfileContent() {
                   ) : (
                     /* Edit Mode */
                     <div>
-                      <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/[0.06]">
-                        <h2 className="text-xl font-bold text-white">Update Account Details</h2>
+                      <div className="flex items-center justify-between mb-6 pb-4 border-b border-black/10 dark:border-white/[0.06]">
+                        <h2 className="text-xl font-bold text-neutral-900 dark:text-white">Update Account Details</h2>
                         <button
                           onClick={handleCancelEdit}
-                          className="text-xs text-white/40 hover:text-white flex items-center gap-1"
+                          className="text-xs text-neutral-500 dark:text-white/40 hover:text-neutral-900 dark:hover:text-white flex items-center gap-1"
                         >
                           <X size={14} /> Cancel
                         </button>
                       </div>
 
                       {/* Avatar & Device Upload Header */}
-                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 mb-8 pb-8 border-b border-white/[0.06]">
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 mb-8 pb-8 border-b border-black/10 dark:border-white/[0.06]">
                         <div
                           className="relative group cursor-pointer"
                           onClick={() => fileInputRef.current?.click()}
@@ -401,8 +525,8 @@ function ProfileContent() {
                         />
 
                         <div className="text-center sm:text-left flex-1">
-                          <h2 className="text-2xl font-bold text-white mb-1">{user?.name}</h2>
-                          <p className="text-xs text-white/40 mb-3">{user?.email}</p>
+                          <h2 className="text-2xl font-bold text-neutral-900 dark:text-white mb-1">{user?.name}</h2>
+                          <p className="text-xs text-neutral-500 dark:text-white/40 mb-3">{user?.email}</p>
 
                           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 mt-2">
                             <button
@@ -415,8 +539,11 @@ function ProfileContent() {
                             {avatar && (
                               <button
                                 type="button"
-                                onClick={() => setAvatar("")}
-                                className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20 transition-all"
+                                onClick={() => {
+                                  setAvatar("");
+                                  setIsAvatarRemoved(true);
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs font-bold text-red-500 dark:text-red-400 hover:bg-red-500/20 transition-all"
                               >
                                 <Trash2 size={13} /> Remove Photo
                               </button>
@@ -427,20 +554,23 @@ function ProfileContent() {
 
                       <form onSubmit={handleSaveProfile} className="space-y-4 max-w-xl">
                         <div>
-                          <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-2">
                             Profile Image URL (Optional)
                           </label>
                           <input
                             type="text"
                             placeholder="https://images.unsplash.com/your-photo.jpg"
                             value={avatar}
-                            onChange={(e) => setAvatar(e.target.value)}
-                            className="w-full rounded-xl border border-white/10 bg-white/5 py-3 px-4 text-sm text-white outline-none focus:border-[#ff6b00]/50 transition-colors placeholder:text-white/20"
+                            onChange={(e) => {
+                              setAvatar(e.target.value);
+                              setIsAvatarRemoved(false);
+                            }}
+                            className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/5 py-3 px-4 text-sm text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]/50 transition-colors placeholder:text-neutral-400 dark:placeholder:text-white/20"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-2">
                             Full Name
                           </label>
                           <input
@@ -448,59 +578,67 @@ function ProfileContent() {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             required
-                            className="w-full rounded-xl border border-white/10 bg-white/5 py-3 px-4 text-sm text-white outline-none focus:border-[#ff6b00]/50 transition-colors"
+                            className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/5 py-3 px-4 text-sm text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]/50 transition-colors"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-2">
                             Email Address
                           </label>
                           <div className="relative">
-                            <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
+                            <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-white/30" />
                             <input
                               type="email"
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
                               required
-                              className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-[#ff6b00]/50 transition-colors"
+                              className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/5 py-3 pl-11 pr-4 text-sm text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]/50 transition-colors"
                             />
                           </div>
                         </div>
 
                         <div>
-                          <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-2">
                             Phone Number
                           </label>
                           <div className="relative">
-                            <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
+                            <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-white/30" />
                             <input
                               type="tel"
-                              placeholder="e.g. +91 9876543210"
+                              placeholder="10-digit mobile number"
                               value={phone}
-                              onChange={(e) => setPhone(e.target.value)}
-                              className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-11 pr-4 text-sm text-white outline-none focus:border-[#ff6b00]/50 transition-colors"
+                              onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                              maxLength={10}
+                              inputMode="numeric"
+                              className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/5 py-3 pl-11 pr-4 text-sm text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]/50 transition-colors"
                             />
                           </div>
                         </div>
 
                         <div>
-                          <label className="block text-xs font-semibold uppercase tracking-wider text-white/40 mb-2">
-                            New Password (Leave blank to keep current password)
-                          </label>
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-white/40">
+                              Account Password
+                            </label>
+                            <span className="text-[11px] text-neutral-400 dark:text-white/40">
+                              {password ? "(Click eye icon to view or edit)" : "(Leave blank to keep current password)"}
+                            </span>
+                          </div>
                           <div className="relative">
-                            <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
+                            <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-white/30" />
                             <input
                               type={showPassword ? "text" : "password"}
-                              placeholder="Enter new password (min 6 chars)"
+                              placeholder={password ? "Enter account password" : "Enter new password (min 6 chars, or leave blank)"}
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
-                              className="w-full rounded-xl border border-white/10 bg-white/5 py-3 pl-11 pr-11 text-sm text-white outline-none focus:border-[#ff6b00]/50 transition-colors placeholder:text-white/20"
+                              className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/5 py-3 pl-11 pr-11 text-sm text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]/50 transition-colors placeholder:text-neutral-400 dark:placeholder:text-white/20"
                             />
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-white/40 hover:text-neutral-900 dark:hover:text-white transition-colors"
+                              title={showPassword ? "Hide password" : "Show password"}
                             >
                               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                             </button>
@@ -508,7 +646,7 @@ function ProfileContent() {
                         </div>
 
                         {profileError && (
-                          <div className="flex items-center gap-2 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-xs text-red-400">
+                          <div className="flex items-center gap-2 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-xs text-red-500 dark:text-red-400">
                             <AlertCircle size={16} /> {profileError}
                           </div>
                         )}
@@ -525,7 +663,7 @@ function ProfileContent() {
                           <button
                             type="button"
                             onClick={handleCancelEdit}
-                            className="rounded-full border border-white/20 px-6 py-3 text-xs font-bold uppercase tracking-wider text-white/70 hover:text-white hover:border-white/40 transition-colors inline-flex items-center gap-2"
+                            className="rounded-full border border-black/20 dark:border-white/20 px-6 py-3 text-xs font-bold uppercase tracking-wider text-neutral-700 dark:text-white/70 hover:text-neutral-900 dark:hover:text-white hover:border-black/40 dark:hover:border-white/40 transition-colors inline-flex items-center gap-2"
                           >
                             <X size={15} /> Cancel
                           </button>
@@ -544,16 +682,16 @@ function ProfileContent() {
                   <div className="flex items-center gap-3 rounded-2xl bg-[#ff6b00]/10 border border-[#ff6b00]/30 p-4 text-xs text-[#ff6b00] shadow-lg">
                     <AlertTriangle size={22} className="shrink-0 text-[#ff6b00]" />
                     <div>
-                      <p className="font-bold text-sm text-white">Delivery Address Required</p>
-                      <p className="text-white/60">Please add your shipping address below before proceeding to complete your order.</p>
+                      <p className="font-bold text-sm text-neutral-900 dark:text-white">Delivery Address Required</p>
+                      <p className="text-neutral-600 dark:text-white/60">Please add your shipping address below before proceeding to complete your order.</p>
                     </div>
                   </div>
                 )}
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-bold text-white mb-1">Your Delivery Addresses</h2>
-                    <p className="text-xs text-white/40">Manage your saved shipping addresses for faster checkout.</p>
+                    <h2 className="text-lg font-bold text-neutral-900 dark:text-white mb-1">Your Delivery Addresses</h2>
+                    <p className="text-xs text-neutral-500 dark:text-white/40">Manage your saved shipping addresses for faster checkout.</p>
                   </div>
                   <button
                     onClick={handleOpenAddAddressModal}
@@ -564,10 +702,10 @@ function ProfileContent() {
                 </div>
 
                 {!user?.addresses || user.addresses.length === 0 ? (
-                  <div className="rounded-2xl border border-white/[0.06] bg-[#0c0c0c] py-16 text-center">
-                    <MapPin size={48} className="mx-auto mb-4 text-white/10" />
-                    <h3 className="text-lg font-light text-white mb-2">No Saved Addresses</h3>
-                    <p className="text-xs text-white/40 mb-6">Add an address to speed up your future orders.</p>
+                  <div className="rounded-2xl border border-black/10 dark:border-white/[0.06] bg-white dark:bg-[#0c0c0c] py-16 text-center shadow-sm dark:shadow-none transition-colors duration-300">
+                    <MapPin size={48} className="mx-auto mb-4 text-neutral-300 dark:text-white/10" />
+                    <h3 className="text-lg font-light text-neutral-900 dark:text-white mb-2">No Saved Addresses</h3>
+                    <p className="text-xs text-neutral-500 dark:text-white/40 mb-6">Add an address to speed up your future orders.</p>
                     <button
                       onClick={handleOpenAddAddressModal}
                       className="btn-pill btn-pill-gold inline-flex items-center gap-2"
@@ -582,10 +720,10 @@ function ProfileContent() {
                       return (
                         <div
                           key={addrId}
-                          className={`relative rounded-2xl border p-5 transition-all ${
+                          className={`relative rounded-2xl border p-5 transition-all shadow-sm dark:shadow-none ${
                             addr.isDefault
-                              ? "border-[#ff6b00]/40 bg-[#ff6b00]/[0.02]"
-                              : "border-white/[0.08] bg-[#0c0c0c]"
+                              ? "border-[#ff6b00]/40 bg-[#ff6b00]/[0.03] dark:bg-[#ff6b00]/[0.02]"
+                              : "border-black/10 dark:border-white/[0.08] bg-white dark:bg-[#0c0c0c]"
                           }`}
                         >
                           {addr.isDefault && (
@@ -594,16 +732,16 @@ function ProfileContent() {
                             </span>
                           )}
 
-                          <h4 className="text-sm font-bold text-white mb-1">{addr.name}</h4>
-                          <p className="text-xs text-white/40 mb-3">{addr.phone}</p>
-                          <p className="text-xs text-white/70 leading-relaxed mb-4">
+                          <h4 className="text-sm font-bold text-neutral-900 dark:text-white mb-1">{addr.name}</h4>
+                          <p className="text-xs text-neutral-500 dark:text-white/40 mb-3">{addr.phone}</p>
+                          <p className="text-xs text-neutral-600 dark:text-white/70 leading-relaxed mb-4">
                             {addr.addressLine1}
                             {addr.addressLine2 ? `, ${addr.addressLine2}` : ""}
                             <br />
                             {addr.city}, {addr.state} - {addr.pincode}
                           </p>
 
-                          <div className="flex items-center gap-3 border-t border-white/[0.06] pt-3">
+                          <div className="flex items-center gap-3 border-t border-black/10 dark:border-white/[0.06] pt-3">
                             <button
                               onClick={() => handleEditAddressClick(addr)}
                               className="text-[10px] font-bold uppercase tracking-wider text-[#ff6b00] hover:underline flex items-center gap-1"
@@ -613,14 +751,14 @@ function ProfileContent() {
                             {!addr.isDefault && (
                               <button
                                 onClick={() => setDefaultAddress(addrId)}
-                                className="text-[10px] font-bold uppercase tracking-wider text-white/60 hover:text-white transition-colors"
+                                className="text-[10px] font-bold uppercase tracking-wider text-neutral-600 dark:text-white/60 hover:text-black dark:hover:text-white transition-colors"
                               >
                                 Set as Default
                               </button>
                             )}
                             <button
                               onClick={() => removeAddress(addrId)}
-                              className="text-[10px] font-bold uppercase tracking-wider text-red-400/70 hover:text-red-400 transition-colors ml-auto flex items-center gap-1"
+                              className="text-[10px] font-bold uppercase tracking-wider text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors ml-auto flex items-center gap-1"
                             >
                               <Trash2 size={12} /> Remove
                             </button>
@@ -640,7 +778,7 @@ function ProfileContent() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-black/80 p-4 backdrop-blur-sm"
                   onClick={() => setShowAddressModal(false)}
                 >
                   <motion.div
@@ -648,15 +786,15 @@ function ProfileContent() {
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 10 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="w-full max-w-lg rounded-2xl border border-white/[0.08] bg-[#0d0d0d] p-6 shadow-2xl text-white space-y-4"
+                    className="w-full max-w-lg rounded-2xl border border-black/10 dark:border-white/[0.08] bg-white dark:bg-[#0d0d0d] p-6 shadow-2xl text-neutral-900 dark:text-white space-y-4"
                   >
-                    <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
-                      <h3 className="text-lg font-bold text-white">
+                    <div className="flex items-center justify-between border-b border-black/10 dark:border-white/[0.06] pb-3">
+                      <h3 className="text-lg font-bold text-neutral-900 dark:text-white">
                         {editingAddressId ? "Edit Delivery Address" : "Add Delivery Address"}
                       </h3>
                       <button
                         onClick={() => setShowAddressModal(false)}
-                        className="text-white/40 hover:text-white"
+                        className="text-neutral-400 dark:text-white/40 hover:text-neutral-900 dark:hover:text-white text-xl leading-none"
                       >
                         &times;
                       </button>
@@ -665,7 +803,7 @@ function ProfileContent() {
                     <form onSubmit={handleAddAddressSubmit} className="space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-1">
                             Recipient Name
                           </label>
                           <input
@@ -674,26 +812,33 @@ function ProfileContent() {
                             placeholder="Full Name"
                             value={addressForm.name}
                             onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })}
-                            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 px-3 text-xs text-white outline-none focus:border-[#ff6b00]/50"
+                            className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/5 py-2.5 px-3 text-xs text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]/50 placeholder:text-neutral-400 dark:placeholder:text-white/20"
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-1">
                             Phone Number
                           </label>
                           <input
                             type="tel"
                             required
-                            placeholder="Mobile Number"
+                            placeholder="10-digit mobile number"
                             value={addressForm.phone}
-                            onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
-                            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 px-3 text-xs text-white outline-none focus:border-[#ff6b00]/50"
+                            onChange={(e) =>
+                              setAddressForm({
+                                ...addressForm,
+                                phone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                              })
+                            }
+                            maxLength={10}
+                            inputMode="numeric"
+                            className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/5 py-2.5 px-3 text-xs text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]/50 placeholder:text-neutral-400 dark:placeholder:text-white/20"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-1">
                           Address Line 1
                         </label>
                         <input
@@ -702,12 +847,12 @@ function ProfileContent() {
                           placeholder="Flat, House no., Building, Street"
                           value={addressForm.addressLine1}
                           onChange={(e) => setAddressForm({ ...addressForm, addressLine1: e.target.value })}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 px-3 text-xs text-white outline-none focus:border-[#ff6b00]/50"
+                          className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/5 py-2.5 px-3 text-xs text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]/50 placeholder:text-neutral-400 dark:placeholder:text-white/20"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-1">
                           Address Line 2 (Optional)
                         </label>
                         <input
@@ -715,13 +860,13 @@ function ProfileContent() {
                           placeholder="Landmark, Area, Sector"
                           value={addressForm.addressLine2}
                           onChange={(e) => setAddressForm({ ...addressForm, addressLine2: e.target.value })}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 px-3 text-xs text-white outline-none focus:border-[#ff6b00]/50"
+                          className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/5 py-2.5 px-3 text-xs text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]/50 placeholder:text-neutral-400 dark:placeholder:text-white/20"
                         />
                       </div>
 
                       <div className="grid grid-cols-3 gap-3">
                         <div>
-                          <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-1">
                             City
                           </label>
                           <input
@@ -730,11 +875,11 @@ function ProfileContent() {
                             placeholder="City"
                             value={addressForm.city}
                             onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
-                            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 px-3 text-xs text-white outline-none focus:border-[#ff6b00]/50"
+                            className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/5 py-2.5 px-3 text-xs text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]/50 placeholder:text-neutral-400 dark:placeholder:text-white/20"
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-1">
                             State
                           </label>
                           <input
@@ -743,11 +888,11 @@ function ProfileContent() {
                             placeholder="State"
                             value={addressForm.state}
                             onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
-                            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 px-3 text-xs text-white outline-none focus:border-[#ff6b00]/50"
+                            className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/5 py-2.5 px-3 text-xs text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]/50 placeholder:text-neutral-400 dark:placeholder:text-white/20"
                           />
                         </div>
                         <div>
-                          <label className="block text-[10px] font-bold uppercase tracking-wider text-white/40 mb-1">
+                          <label className="block text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-1">
                             Pincode
                           </label>
                           <input
@@ -756,7 +901,7 @@ function ProfileContent() {
                             placeholder="6-digit ZIP"
                             value={addressForm.pincode}
                             onChange={(e) => setAddressForm({ ...addressForm, pincode: e.target.value })}
-                            className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 px-3 text-xs text-white outline-none focus:border-[#ff6b00]/50"
+                            className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/5 py-2.5 px-3 text-xs text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]/50 placeholder:text-neutral-400 dark:placeholder:text-white/20"
                           />
                         </div>
                       </div>
@@ -769,16 +914,16 @@ function ProfileContent() {
                           onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
                           className="accent-[#ff6b00]"
                         />
-                        <label htmlFor="isDefault" className="text-xs text-white/70">
+                        <label htmlFor="isDefault" className="text-xs text-neutral-700 dark:text-white/70">
                           Set as default delivery address
                         </label>
                       </div>
 
-                      <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/[0.06]">
+                      <div className="flex items-center justify-end gap-3 pt-4 border-t border-black/10 dark:border-white/[0.06]">
                         <button
                           type="button"
                           onClick={() => setShowAddressModal(false)}
-                          className="px-4 py-2.5 text-xs text-white/50 hover:text-white"
+                          className="px-4 py-2.5 text-xs text-neutral-500 dark:text-white/50 hover:text-neutral-900 dark:hover:text-white"
                         >
                           Cancel
                         </button>
@@ -806,7 +951,7 @@ export default function ProfilePage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen bg-black pt-32 pb-20 flex items-center justify-center text-white/40">
+        <main className="min-h-screen bg-[#f8f7f2] dark:bg-black pt-32 pb-20 flex items-center justify-center text-neutral-500 dark:text-white/40">
           Loading profile...
         </main>
       }

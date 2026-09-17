@@ -4,11 +4,14 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, ShoppingBag, Heart, Menu, X, User, LogOut } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useSearch } from "@/context/SearchContext";
 import { useAuth } from "@/context/AuthContext";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import BrandLogo from "@/components/ui/BrandLogo";
 
 const navItems = [
   { label: "Home", href: "/" },
@@ -22,6 +25,7 @@ const navItems = [
 ];
 
 export default function Navbar() {
+  const router = useRouter();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -29,6 +33,24 @@ export default function Navbar() {
   const { totalItems: wishlistCount } = useWishlist();
   const { openSearch } = useSearch();
   const { user, isAuthenticated, logout } = useAuth();
+
+  const handleNav = (path: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setShowUserMenu(false);
+    if (typeof window !== "undefined") {
+      if (path.includes("edit=true")) {
+        window.dispatchEvent(new CustomEvent("noir:profile-action", { detail: { edit: true, tab: "profile" } }));
+      } else if (path.includes("tab=addresses")) {
+        window.dispatchEvent(new CustomEvent("noir:profile-action", { detail: { edit: false, tab: "addresses" } }));
+      } else if (path === "/profile") {
+        window.dispatchEvent(new CustomEvent("noir:profile-action", { detail: { edit: false, tab: "profile" } }));
+      }
+    }
+    router.push(path);
+  };
 
   useEffect(() => {
     if (isMobileOpen) {
@@ -69,12 +91,23 @@ export default function Navbar() {
         <nav className="mx-auto w-full max-w-[1600px] px-5 sm:px-6 md:px-8">
           <div className="flex h-16 items-center justify-between md:h-[72px] lg:h-20">
             {/* Logo - Left */}
-            <Link href="/" className="shrink-0">
-              <span className="text-[15px] font-light uppercase tracking-[0.18em] text-white sm:text-base md:text-lg lg:text-xl">
-                NOIR
-                <span className="ml-1 text-[#ff6b00]">&mdash;</span>
-                <span className="hidden sm:inline">STUDIO</span>
-              </span>
+            <Link href="/" className="shrink-0 flex items-center gap-2.5 sm:gap-3 group">
+              <div className="relative h-10 sm:h-12 w-auto flex items-center">
+                <BrandLogo
+                  width={65}
+                  height={44}
+                  className="h-9 sm:h-11 md:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                  priority
+                />
+              </div>
+              <div className="flex flex-col justify-center">
+                <span className="text-[14px] font-bold uppercase tracking-[0.16em] text-white sm:text-base md:text-lg group-hover:text-[#ff6b00] transition-colors leading-none">
+                  MAITRI
+                </span>
+                <span className="text-[7.5px] sm:text-[9px] tracking-[0.22em] text-[#ff6b00] font-semibold uppercase mt-1 leading-none">
+                  MEN&apos;S WEAR
+                </span>
+              </div>
             </Link>
 
             {/* Nav Items - Center */}
@@ -179,13 +212,13 @@ export default function Navbar() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute right-0 top-full mt-2 w-60 overflow-hidden rounded-xl border border-white/10 bg-[#0a0a0a] shadow-[0_20px_60px_rgba(0,0,0,0.8)]"
+                      className="user-dropdown absolute right-0 top-full mt-2 w-64 overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#0c0c0c] shadow-[0_20px_50px_rgba(0,0,0,0.12)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.8)] z-50 backdrop-blur-xl"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Link
-                        href="/profile"
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 border-b border-white/10 px-4 py-3 hover:bg-white/5 transition-colors cursor-pointer group"
+                        href="/profile?edit=true"
+                        onClick={(e) => handleNav("/profile?edit=true", e)}
+                        className="flex items-center gap-3 border-b border-black/10 dark:border-white/10 px-4 py-3.5 hover:bg-black/[0.03] dark:hover:bg-white/5 transition-colors cursor-pointer group"
                       >
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#ff6b00]/30 bg-[#ff6b00]/10 font-bold text-sm text-[#ff6b00]">
                           {user?.avatar ? (
@@ -195,36 +228,36 @@ export default function Navbar() {
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-white group-hover:text-[#ff6b00] transition-colors truncate">{user?.name}</p>
-                          <p className="text-xs text-white/40 truncate">{user?.email}</p>
+                          <p className="text-sm font-semibold text-neutral-900 dark:text-white group-hover:text-[#ff6b00] transition-colors truncate">{user?.name}</p>
+                          <p className="text-xs text-neutral-500 dark:text-white/40 truncate">{user?.email}</p>
                           <span className="text-[10px] text-[#ff6b00] font-semibold block mt-0.5">Edit Profile &rarr;</span>
                         </div>
                       </Link>
-                      <div className="p-1.5">
+                      <div className="p-1.5 space-y-0.5">
                         <Link
                           href="/profile"
-                          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/60 transition-colors hover:bg-white/5 hover:text-white"
-                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-neutral-700 dark:text-white/70 transition-colors hover:bg-black/[0.04] dark:hover:bg-white/5 hover:text-black dark:hover:text-white"
+                          onClick={(e) => handleNav("/profile", e)}
                         >
                           My Profile
                         </Link>
                         <Link
                           href="/orders"
-                          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/60 transition-colors hover:bg-white/5 hover:text-white"
-                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-neutral-700 dark:text-white/70 transition-colors hover:bg-black/[0.04] dark:hover:bg-white/5 hover:text-black dark:hover:text-white"
+                          onClick={(e) => handleNav("/orders", e)}
                         >
                           My Orders
                         </Link>
                         <Link
                           href="/profile?tab=addresses"
-                          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/60 transition-colors hover:bg-white/5 hover:text-white"
-                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-neutral-700 dark:text-white/70 transition-colors hover:bg-black/[0.04] dark:hover:bg-white/5 hover:text-black dark:hover:text-white"
+                          onClick={(e) => handleNav("/profile?tab=addresses", e)}
                         >
                           Addresses
                         </Link>
 
                         {/* Theme row in dropdown */}
-                        <div className="flex items-center justify-between border-t border-white/10 px-3 py-2 text-sm text-white/60">
+                        <div className="flex items-center justify-between border-t border-black/10 dark:border-white/10 px-3 py-2 text-xs font-medium text-neutral-700 dark:text-white/70">
                           <span>Theme</span>
                           <ThemeToggle variant="switch" />
                         </div>
@@ -234,7 +267,7 @@ export default function Navbar() {
                             logout();
                             setShowUserMenu(false);
                           }}
-                          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-red-400 transition-colors hover:bg-red-500/10"
+                          className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 transition-colors hover:bg-red-500/10"
                         >
                           <LogOut size={14} />
                           Sign Out
@@ -279,6 +312,18 @@ export default function Navbar() {
               >
                 <X size={24} />
               </motion.button>
+              {/* Mobile Brand Header */}
+              <div className="mb-6 flex flex-col items-center gap-1.5">
+                <BrandLogo
+                  width={80}
+                  height={55}
+                  className="h-12 w-auto object-contain"
+                />
+                <span className="text-sm font-bold uppercase tracking-[0.2em] text-white">
+                  MAITRI <span className="text-[#ff6b00]">MEN&apos;S WEAR</span>
+                </span>
+              </div>
+
               <nav className="flex flex-col items-center gap-6 sm:gap-8">
                 {navItems.map((item, index) => (
                   <motion.div

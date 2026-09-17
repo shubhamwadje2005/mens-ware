@@ -9,17 +9,33 @@ const generateToken = (userId) => {
 
 exports.register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-    const existing = await User.findOne({ email });
+    const { name, email, password, phone, avatar } = req.body;
+    const cleanEmail = email ? email.toLowerCase().trim() : "";
+    const existing = await User.findOne({ email: cleanEmail });
     if (existing) return res.status(400).json({ message: "Email already exists" });
 
-    const user = new User({ name, email, password });
+    const user = new User({
+      name: name.trim(),
+      email: cleanEmail,
+      password,
+      phone: phone ? phone.trim() : "",
+      avatar: avatar ? avatar.trim() : "",
+    });
     await user.save();
 
     const token = generateToken(user._id);
     res.status(201).json({
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar },
+      user: {
+        id: user._id,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || "",
+        avatar: user.avatar || "",
+        role: user.role,
+        addresses: user.addresses || [],
+      },
     });
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -29,7 +45,8 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const cleanEmail = email ? email.toLowerCase().trim() : "";
+    const user = await User.findOne({ email: cleanEmail });
     if (!user) return res.status(400).json({ message: "Invalid credentials" });
 
     const isMatch = await user.comparePassword(password);
@@ -38,7 +55,16 @@ exports.login = async (req, res) => {
     const token = generateToken(user._id);
     res.json({
       token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role, avatar: user.avatar },
+      user: {
+        id: user._id,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || "",
+        avatar: user.avatar || "",
+        role: user.role,
+        addresses: user.addresses || [],
+      },
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -64,20 +90,34 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, email, phone, avatar, password } = req.body;
-    const user = await User.findById(req.user.id);
+    const { name, email, phone, avatar, password, removeAvatar } = req.body;
+    const userId = req.user.id || req.user._id;
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (name) user.name = name;
-    if (phone !== undefined) user.phone = phone;
-    if (avatar !== undefined) user.avatar = avatar;
+    // Only update name if non-empty string provided; never wipe existing name
+    if (name && name.trim()) {
+      user.name = name.trim();
+    }
 
-    if (email && email.toLowerCase() !== user.email.toLowerCase()) {
-      const existing = await User.findOne({ email: email.toLowerCase() });
+    // Only update phone if non-empty string provided; never wipe existing phone
+    if (phone !== undefined && phone !== null && phone.trim() !== "") {
+      user.phone = phone.trim();
+    }
+
+    // Update avatar if provided; preserve existing avatar unless explicit removeAvatar is requested
+    if (removeAvatar === true) {
+      user.avatar = "";
+    } else if (avatar !== undefined && avatar !== null && avatar.trim() !== "") {
+      user.avatar = avatar.trim();
+    }
+
+    if (email && email.trim() && email.toLowerCase().trim() !== user.email.toLowerCase()) {
+      const existing = await User.findOne({ email: email.toLowerCase().trim() });
       if (existing && existing._id.toString() !== user._id.toString()) {
         return res.status(400).json({ message: "Email is already taken by another user" });
       }
-      user.email = email.toLowerCase();
+      user.email = email.toLowerCase().trim();
     }
 
     if (password && password.trim() !== "") {

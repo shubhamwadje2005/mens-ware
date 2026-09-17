@@ -30,7 +30,7 @@ export default function FeaturedCollection() {
           className="text-[20vw] font-bold tracking-tighter text-white/[0.015] uppercase"
           style={{ x }}
         >
-          NOIR
+          MAITRI
         </motion.span>
       </div>
 

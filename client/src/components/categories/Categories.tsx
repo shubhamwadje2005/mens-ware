@@ -53,7 +53,8 @@ function CategoryCard({
       <ScrollReveal animation="fadeUp" distance={40} delay={index * 0.08}>
         <div
           ref={ref}
-          className="group relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0c0c0c] shadow-xl transition-all duration-500 hover:border-white/[0.2] hover:shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
+          data-overlay
+          className="preserve-white group relative aspect-[3/4] w-full overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0c0c0c] shadow-xl transition-all duration-500 hover:border-white/[0.2] hover:shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
         >
           {/* Inner Image Container with subtle parallax */}
           <motion.div

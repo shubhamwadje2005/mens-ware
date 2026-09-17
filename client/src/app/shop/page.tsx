@@ -9,6 +9,7 @@ import ScrollReveal from "@/components/ui/ScrollReveal";
 import { useGetProductsQuery } from "@/redux/api/product.api";
 import { SlidersHorizontal, ChevronDown, X, Loader2, PackageOpen } from "lucide-react";
 import Link from "next/link";
+import { ProductGridSkeleton } from "@/components/ui/StoreSkeletons";
 
 const SmoothScrollProvider = dynamic(
   () => import("@/components/layout/SmoothScrollProvider"),
@@ -192,11 +193,9 @@ export default function ShopPage() {
             </div>
           )}
 
-          {/* Loading */}
+          {/* Loading Skeleton */}
           {isLoading && (
-            <div className="flex h-[55vh] items-center justify-center">
-              <Loader2 size={36} className="animate-spin text-[#ff6b00]" />
-            </div>
+            <ProductGridSkeleton count={8} />
           )}
 
           {/* Products */}

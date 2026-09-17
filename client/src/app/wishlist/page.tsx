@@ -148,9 +148,9 @@ export default function WishlistPage() {
                       <p className="text-[10px] font-semibold tracking-wider text-[#ff6b00]/60 uppercase mb-1">{item.product.category}</p>
                       <p className="text-sm text-white truncate">{item.product.name}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm font-bold text-white">${item.product.price}</span>
-                        {item.product.originalPrice && (
-                          <span className="text-xs text-white/25 line-through">${item.product.originalPrice}</span>
+                        <span className="text-sm font-bold text-white">₹{item.product.price?.toLocaleString()}</span>
+                        {item.product.originalPrice && item.product.originalPrice > item.product.price && (
+                          <span className="text-xs text-white/25 line-through">₹{item.product.originalPrice.toLocaleString()}</span>
                         )}
                       </div>
                     </Link>

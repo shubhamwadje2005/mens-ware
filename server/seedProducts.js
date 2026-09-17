@@ -120,21 +120,37 @@ const productsData = [
         name: "Crisp White",
         hex: "#FFFFFF",
         skuCode: "WHT",
+        isAvailable: true,
         images: [
           { url: "https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 },
-          { url: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: false, sortOrder: 1 }
+          { url: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: false, sortOrder: 1 },
+          { url: "https://images.unsplash.com/photo-1620012253295-c15c429f66bf?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: false, sortOrder: 2 }
         ]
       },
       {
         name: "Sky Blue",
         hex: "#779ECB",
         skuCode: "BLU",
+        isAvailable: true,
         images: [
-          { url: "https://images.unsplash.com/photo-1589310243389-96a5483213a8?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 }
+          { url: "https://images.unsplash.com/photo-1589310243389-96a5483213a8?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 },
+          { url: "https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: false, sortOrder: 1 },
+          { url: "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: false, sortOrder: 2 }
+        ]
+      },
+      {
+        name: "Midnight Navy",
+        hex: "#1B263B",
+        skuCode: "NVY",
+        isAvailable: true,
+        images: [
+          { url: "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 },
+          { url: "https://images.unsplash.com/photo-1621072156002-e2fccdc0b176?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: false, sortOrder: 1 },
+          { url: "https://images.unsplash.com/photo-1563630423918-b58f07336ac9?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: false, sortOrder: 2 }
         ]
       }
     ],
-    colors: ["Crisp White", "Sky Blue"],
+    colors: ["Crisp White", "Sky Blue", "Midnight Navy"],
     sizes: ["38", "39", "40", "42", "44"],
     shortDescription: "Woven with extra-long staple Egyptian Giza cotton blended with mulberry silk for a luminous sheen and crease resistance.",
     description: "An essential centerpiece for the modern gentleman. Woven from 120/2 two-ply yarn with real mother-of-pearl buttons and removable collar stays.",
@@ -157,9 +173,10 @@ const productsData = [
       { color: "Crisp White", colorCode: "#FFFFFF", size: "42", sku: "NS-SHT-GIZA-WHT-42", mrp: 4999, sellingPrice: 3499, stock: 18 },
       { color: "Sky Blue", colorCode: "#779ECB", size: "38", sku: "NS-SHT-GIZA-BLU-38", mrp: 4999, sellingPrice: 3499, stock: 12 },
       { color: "Sky Blue", colorCode: "#779ECB", size: "40", sku: "NS-SHT-GIZA-BLU-40", mrp: 4999, sellingPrice: 3499, stock: 16 },
-      { color: "Sky Blue", colorCode: "#779ECB", size: "42", sku: "NS-SHT-GIZA-BLU-42", mrp: 4999, sellingPrice: 3499, stock: 10 }
+      { color: "Sky Blue", colorCode: "#779ECB", size: "42", sku: "NS-SHT-GIZA-BLU-42", mrp: 4999, sellingPrice: 3499, stock: 10 },
+      { color: "Midnight Navy", colorCode: "#1B263B", size: "40", sku: "NS-SHT-GIZA-NVY-40", mrp: 4999, sellingPrice: 3499, stock: 14 }
     ],
-    stock: 91,
+    stock: 95,
     isAvailable: true,
     isActive: true,
   },
@@ -188,14 +205,27 @@ const productsData = [
         name: "Vintage Charcoal",
         hex: "#2B2B2B",
         skuCode: "CHR",
+        isAvailable: true,
         images: [
-          { url: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 }
+          { url: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 },
+          { url: "https://images.unsplash.com/photo-1578587018452-892bacefd3f2?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: false, sortOrder: 1 }
         ]
       },
       {
         name: "Mocha Brown",
         hex: "#5A3825",
         skuCode: "MOC",
+        isAvailable: true,
+        images: [
+          { url: "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 },
+          { url: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: false, sortOrder: 1 }
+        ]
+      },
+      {
+        name: "Sage Olive",
+        hex: "#4B5320",
+        skuCode: "SGE",
+        isAvailable: false,
         images: [
           { url: "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 }
         ]
@@ -516,20 +546,46 @@ const productsData = [
         name: "Pure Monochrome White",
         hex: "#F8F9FA",
         skuCode: "WHT",
+        isAvailable: true,
         images: [
-          { url: "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 }
+          { url: "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 },
+          { url: "https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: false, sortOrder: 1 },
+          { url: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: false, sortOrder: 2 }
         ]
       },
       {
         name: "Triple Noir Black",
         hex: "#151515",
         skuCode: "BLK",
+        isAvailable: true,
         images: [
-          { url: "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 }
+          { url: "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 },
+          { url: "https://images.unsplash.com/photo-1579338559194-a162d19bf842?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: false, sortOrder: 1 },
+          { url: "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: false, sortOrder: 2 }
+        ]
+      },
+      {
+        name: "Carhartt Mustard Tan",
+        hex: "#C68B59",
+        skuCode: "TAN",
+        isAvailable: true,
+        images: [
+          { url: "https://images.unsplash.com/photo-1582588678413-dbf45f4823e9?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 },
+          { url: "https://images.unsplash.com/photo-1607522370275-f14206abe5d3?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: false, sortOrder: 1 },
+          { url: "https://images.unsplash.com/photo-1587563871167-1ee9c731aefb?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: false, sortOrder: 2 }
+        ]
+      },
+      {
+        name: "Crimson Maroon",
+        hex: "#722F37",
+        skuCode: "MRN",
+        isAvailable: false,
+        images: [
+          { url: "https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&w=1200&q=80", type: "url", isPrimary: true, sortOrder: 0 }
         ]
       }
     ],
-    colors: ["Pure Monochrome White", "Triple Noir Black"],
+    colors: ["Pure Monochrome White", "Triple Noir Black", "Carhartt Mustard Tan", "Crimson Maroon"],
     sizes: ["40", "41", "42", "43", "44", "45"],
     shortDescription: "Hand-stitched in Civitanova Marche, Italy using butter-soft Italian calfskin with Margom stitched rubber cupsole.",
     description: "The epitome of understated luxury footwear. Finished with calfskin leather lining, memory foam insole, waxed cotton laces, and gold foil serial numbers.",
@@ -545,16 +601,17 @@ const productsData = [
       closure: "Lace-Up with Tonal Waxed Cotton Laces"
     },
     variants: [
-      { color: "Pure Monochrome White", colorCode: "#F8F9FA", size: "40", sku: "NS-SNK-WHT-40", mrp: 12999, sellingPrice: 8999, stock: 6 },
-      { color: "Pure Monochrome White", colorCode: "#F8F9FA", size: "41", sku: "NS-SNK-WHT-41", mrp: 12999, sellingPrice: 8999, stock: 10 },
-      { color: "Pure Monochrome White", colorCode: "#F8F9FA", size: "42", sku: "NS-SNK-WHT-42", mrp: 12999, sellingPrice: 8999, stock: 14 },
-      { color: "Pure Monochrome White", colorCode: "#F8F9FA", size: "43", sku: "NS-SNK-WHT-43", mrp: 12999, sellingPrice: 8999, stock: 12 },
-      { color: "Pure Monochrome White", colorCode: "#F8F9FA", size: "44", sku: "NS-SNK-WHT-44", mrp: 12999, sellingPrice: 8999, stock: 8 },
-      { color: "Triple Noir Black", colorCode: "#151515", size: "41", sku: "NS-SNK-BLK-41", mrp: 12999, sellingPrice: 8999, stock: 8 },
-      { color: "Triple Noir Black", colorCode: "#151515", size: "42", sku: "NS-SNK-BLK-42", mrp: 12999, sellingPrice: 8999, stock: 10 },
-      { color: "Triple Noir Black", colorCode: "#151515", size: "43", sku: "NS-SNK-BLK-43", mrp: 12999, sellingPrice: 8999, stock: 9 }
+      { color: "Pure Monochrome White", colorCode: "#F8F9FA", size: "40", sku: "NS-SNK-WHT-40", mrp: 12999, sellingPrice: 8999, stock: 6, isActive: true },
+      { color: "Pure Monochrome White", colorCode: "#F8F9FA", size: "41", sku: "NS-SNK-WHT-41", mrp: 12999, sellingPrice: 8999, stock: 10, isActive: true },
+      { color: "Pure Monochrome White", colorCode: "#F8F9FA", size: "42", sku: "NS-SNK-WHT-42", mrp: 12999, sellingPrice: 8999, stock: 14, isActive: true },
+      { color: "Triple Noir Black", colorCode: "#151515", size: "41", sku: "NS-SNK-BLK-41", mrp: 12999, sellingPrice: 8999, stock: 8, isActive: true },
+      { color: "Triple Noir Black", colorCode: "#151515", size: "42", sku: "NS-SNK-BLK-42", mrp: 12999, sellingPrice: 8999, stock: 10, isActive: true },
+      { color: "Carhartt Mustard Tan", colorCode: "#C68B59", size: "41", sku: "NS-SNK-TAN-41", mrp: 12999, sellingPrice: 8999, stock: 12, isActive: true },
+      { color: "Carhartt Mustard Tan", colorCode: "#C68B59", size: "42", sku: "NS-SNK-TAN-42", mrp: 12999, sellingPrice: 8999, stock: 15, isActive: true },
+      { color: "Carhartt Mustard Tan", colorCode: "#C68B59", size: "43", sku: "NS-SNK-TAN-43", mrp: 12999, sellingPrice: 8999, stock: 8, isActive: true },
+      { color: "Crimson Maroon", colorCode: "#722F37", size: "42", sku: "NS-SNK-MRN-42", mrp: 12999, sellingPrice: 8999, stock: 0, isActive: false }
     ],
-    stock: 77,
+    stock: 83,
     isAvailable: true,
     isActive: true,
   }

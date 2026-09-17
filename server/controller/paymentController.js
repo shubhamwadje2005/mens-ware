@@ -1,5 +1,7 @@
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
+const mongoose = require("mongoose");
+const Order = require("../modal/Order");
 
 if (
   !process.env.RAZORPAY_KEY_ID ||
@@ -199,38 +201,40 @@ exports.verifyPayment = async (req, res) => {
       razorpay_payment_id
     );
 
-    /*
-      IMPORTANT:
+    let updatedOrder = null;
+    try {
+      const orderQuery = {
+        $or: [
+          { paymentId: razorpay_order_id },
+          { paymentId: razorpay_payment_id },
+        ],
+      };
+      if (req.body.orderId && mongoose.Types.ObjectId.isValid(req.body.orderId)) {
+        orderQuery.$or.push({ _id: req.body.orderId });
+      }
+      if (req.body.dbOrderId && mongoose.Types.ObjectId.isValid(req.body.dbOrderId)) {
+        orderQuery.$or.push({ _id: req.body.dbOrderId });
+      }
 
-      इथे तुझ्या database मध्ये order update कर.
-
-      Example:
-
-      await Order.findOneAndUpdate(
+      updatedOrder = await Order.findOneAndUpdate(
+        orderQuery,
         {
-          razorpayOrderId:
-            razorpay_order_id
+          paymentStatus: "paid",
+          paymentId: razorpay_payment_id,
+          status: "confirmed",
         },
-        {
-          razorpayPaymentId:
-            razorpay_payment_id,
-
-          paymentStatus: "paid"
-        }
+        { new: true }
       );
-    */
+    } catch (dbErr) {
+      console.error("Order update failed after verification:", dbErr);
+    }
 
     return res.status(200).json({
       success: true,
-
-      message:
-        "Razorpay payment verified successfully",
-
-      paymentId:
-        razorpay_payment_id,
-
-      orderId:
-        razorpay_order_id,
+      message: "Razorpay payment verified successfully",
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id,
+      order: updatedOrder,
     });
   } catch (error) {
     console.error(

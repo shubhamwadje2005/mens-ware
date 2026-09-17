@@ -22,33 +22,36 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "NOIR—STUDIO | Premium Menswear & Luxury Clothing",
-    template: "%s | NOIR—STUDIO",
+    default: "Maitri Men's Wear | The Classy Men's Wear",
+    template: "%s | Maitri Men's Wear",
   },
   description:
-    "Discover timeless luxury. Premium oversized t-shirts, silk shirts, cargo pants, hoodies, jackets, sneakers and accessories. Crafted with intention.",
+    "Discover timeless elegance with Maitri Men's Wear - The Classy Men's Wear. Premium shirts, formal blazers, ethnic wear, oversized t-shirts, and luxury menswear crafted with style.",
   keywords: [
-    "luxury clothing",
-    "premium menswear",
-    "oversized t-shirts",
-    "silk shirts",
-    "cargo pants",
-    "hoodies",
-    "designer sneakers",
-    "noir studio",
+    "maitri mens wear",
+    "maitri men's wear",
+    "the classy men's wear",
+    "luxury menswear",
+    "premium clothing",
+    "formal blazers",
+    "ethnic wear",
+    "shirts",
   ],
-  authors: [{ name: "NOIR—STUDIO" }],
+  authors: [{ name: "Maitri Men's Wear" }],
+  icons: {
+    icon: "/favicon.ico",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
-    siteName: "NOIR—STUDIO",
-    title: "NOIR—STUDIO | Premium Menswear & Luxury Clothing",
-    description: "Discover timeless luxury. Premium clothing crafted with intention.",
+    siteName: "Maitri Men's Wear",
+    title: "Maitri Men's Wear | The Classy Men's Wear",
+    description: "Discover timeless style with Maitri Men's Wear - The Classy Men's Wear.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "NOIR—STUDIO | Premium Menswear & Luxury Clothing",
-    description: "Discover timeless luxury. Premium clothing crafted with intention.",
+    title: "Maitri Men's Wear | The Classy Men's Wear",
+    description: "Discover timeless style with Maitri Men's Wear - The Classy Men's Wear.",
   },
   robots: {
     index: true,

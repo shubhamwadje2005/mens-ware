@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useMemo } from "react";
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useSpring } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -34,8 +34,15 @@ const COLOR_NAMES_MAP: Record<string, string> = {
 export default function ProductCard({ product, index = 0 }: ProductCardProps) {
   const ref = useRef<HTMLDivElement>(null);
   const imgBoxRef = useRef<HTMLDivElement>(null);
+  const cardRectRef = useRef<DOMRect | null>(null);
+  const imgRectRef = useRef<DOMRect | null>(null);
   const router = useRouter();
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+
+  const rotateX = useMotionValue(0);
+  const rotateY = useMotionValue(0);
+  const springX = useSpring(rotateX, { stiffness: 260, damping: 25 });
+  const springY = useSpring(rotateY, { stiffness: 260, damping: 25 });
+
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [selectedSwatchColor, setSelectedSwatchColor] = useState<string | null>(null);
   const { addItem, isInCart } = useCart();
@@ -132,28 +139,51 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       : ["https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&h=800&fit=crop&q=80"];
   }, [product, activeSwatch]);
 
+  const handleMouseEnter = () => {
+    if (ref.current) {
+      cardRectRef.current = ref.current.getBoundingClientRect();
+    }
+  };
+
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
+    let rect = cardRectRef.current;
+    if (!rect && ref.current) {
+      rect = ref.current.getBoundingClientRect();
+      cardRectRef.current = rect;
+    }
+    if (!rect || rect.width === 0 || rect.height === 0) return;
     const x = (e.clientX - rect.left - rect.width / 2) / rect.width;
     const y = (e.clientY - rect.top - rect.height / 2) / rect.height;
-    setTilt({ x: y * -6, y: x * 6 });
+    rotateX.set(y * -6);
+    rotateY.set(x * 6);
   };
 
   const handleMouseLeave = () => {
-    setTilt({ x: 0, y: 0 });
+    cardRectRef.current = null;
+    imgRectRef.current = null;
+    rotateX.set(0);
+    rotateY.set(0);
     setActiveImageIndex(0);
+  };
+
+  const handleImageMouseEnter = () => {
+    if (imgBoxRef.current) {
+      imgRectRef.current = imgBoxRef.current.getBoundingClientRect();
+    }
   };
 
   // Cursor scrub across image box horizontally
   const handleImageMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!imgBoxRef.current || productImages.length <= 1) return;
-    const rect = imgBoxRef.current.getBoundingClientRect();
+    if (productImages.length <= 1) return;
+    let rect = imgRectRef.current;
+    if (!rect && imgBoxRef.current) {
+      rect = imgBoxRef.current.getBoundingClientRect();
+      imgRectRef.current = rect;
+    }
+    if (!rect || rect.width <= 0) return;
     const x = e.clientX - rect.left;
-    const width = rect.width;
-    if (width <= 0) return;
     const segment = Math.min(
-      Math.max(0, Math.floor((x / width) * productImages.length)),
+      Math.max(0, Math.floor((x / rect.width) * productImages.length)),
       productImages.length - 1
     );
     if (segment !== activeImageIndex) {
@@ -258,6 +288,7 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
       transition={{ duration: 0.8, delay: index * 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+      onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       style={{ perspective: 1000 }}
@@ -269,15 +300,15 @@ export default function ProductCard({ product, index = 0 }: ProductCardProps) {
               ? "border-red-500/20 group-hover:border-red-500/40"
               : "border-white/[0.06] group-hover:border-white/[0.14] group-hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8),0_0_0_1px_rgba(255,107,0,0.08)]"
           }`}
-          animate={{
-            rotateX: tilt.x,
-            rotateY: tilt.y,
+          style={{
+            rotateX: springX,
+            rotateY: springY,
           }}
-          transition={{ type: "spring", stiffness: 200, damping: 20 }}
         >
           {/* Image Container with Cursor Scrubbing & Multiple Photos */}
           <div
             ref={imgBoxRef}
+            onMouseEnter={handleImageMouseEnter}
             onMouseMove={handleImageMouseMove}
             className="preserve-white relative aspect-[3/4] overflow-hidden select-none"
           >

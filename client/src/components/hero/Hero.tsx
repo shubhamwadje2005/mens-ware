@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
@@ -31,21 +31,23 @@ function Particles() {
       opacity: number;
     }> = [];
 
-    const count = window.innerWidth < 640 ? 30 : 60;
+    const count = window.innerWidth < 640 ? 25 : 50;
     for (let i = 0; i < count; i++) {
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
         vx: (Math.random() - 0.5) * 0.3,
         vy: (Math.random() - 0.5) * 0.3,
-        size: Math.random() * 2 + 0.5,
-        opacity: Math.random() * 0.4 + 0.1,
+        size: Math.random() * 2 + 1,
+        opacity: Math.random() * 0.5 + 0.1,
       });
     }
 
     let animationId: number;
+    let isVisible = true;
 
     const animate = () => {
+      if (!isVisible) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       particles.forEach((p) => {
@@ -66,6 +68,18 @@ function Particles() {
       animationId = requestAnimationFrame(animate);
     };
 
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+        if (isVisible) {
+          cancelAnimationFrame(animationId);
+          animationId = requestAnimationFrame(animate);
+        }
+      },
+      { threshold: 0 }
+    );
+    observer.observe(canvas);
+
     animate();
 
     const handleResize = () => {
@@ -73,9 +87,10 @@ function Particles() {
       canvas.height = window.innerHeight;
     };
 
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", handleResize, { passive: true });
 
     return () => {
+      observer.disconnect();
       cancelAnimationFrame(animationId);
       window.removeEventListener("resize", handleResize);
     };
@@ -94,28 +109,43 @@ function Spotlight() {
   const posRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
+    const spotlight = document.getElementById("hero-spotlight");
+    if (!spotlight) return;
+
+    let isVisible = true;
+    let animationId: number;
+
     const handleMouseMove = (e: MouseEvent) => {
       mouseRef.current = { x: e.clientX, y: e.clientY };
     };
 
-    let animationId: number;
-
     const animate = () => {
+      if (!isVisible) return;
       posRef.current.x += (mouseRef.current.x - posRef.current.x) * 0.08;
       posRef.current.y += (mouseRef.current.y - posRef.current.y) * 0.08;
 
-      const spotlight = document.getElementById("hero-spotlight");
-      if (spotlight) {
-        spotlight.style.background = `radial-gradient(600px circle at ${posRef.current.x}px ${posRef.current.y}px, rgba(255, 107, 0, 0.06), transparent 60%)`;
-      }
+      spotlight.style.background = `radial-gradient(600px circle at ${posRef.current.x}px ${posRef.current.y}px, rgba(255, 107, 0, 0.06), transparent 60%)`;
 
       animationId = requestAnimationFrame(animate);
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+        if (isVisible) {
+          cancelAnimationFrame(animationId);
+          animationId = requestAnimationFrame(animate);
+        }
+      },
+      { threshold: 0 }
+    );
+    observer.observe(spotlight);
+
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
     animate();
 
     return () => {
+      observer.disconnect();
       window.removeEventListener("mousemove", handleMouseMove);
       cancelAnimationFrame(animationId);
     };
@@ -134,8 +164,7 @@ export default function Hero() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { currentFrame, imagesLoaded, setFrame, images } = useImageSequence();
-  const [isReady, setIsReady] = useState(false);
+  const { currentFrame, firstFrameLoaded, setFrame, getRenderableImage } = useImageSequence();
 
   const headingChars = "DEFINE YOUR ESSENCE".split("");
 
@@ -148,7 +177,7 @@ export default function Hero() {
         start: "top top",
         end: "bottom top",
         pin: sectionRef.current,
-        scrub: true,
+        scrub: 0.5,
         onUpdate: (self) => {
           setFrame(self.progress);
         },
@@ -158,88 +187,62 @@ export default function Hero() {
     return () => ctx.revert();
   }, [setFrame]);
 
-  useEffect(() => {
-    if (imagesLoaded && !isReady) {
-      setIsReady(true);
-    }
-  }, [imagesLoaded, isReady]);
-
-  useEffect(() => {
+  // High-performance canvas drawing using requestAnimationFrame
+  const renderFrame = useCallback((frameIdx: number) => {
     const canvas = canvasRef.current;
-    if (!canvas || !isReady) return;
+    if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const drawFrame = () => {
-      const img = images[currentFrame];
-      if (!img || !img.complete) return;
+    const img = getRenderableImage(frameIdx);
+    if (!img || !img.complete || !img.naturalWidth) return;
 
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
 
-      const canvasRatio = canvas.width / canvas.height;
-      const imgRatio = img.width / img.height;
+    const canvasRatio = w / h;
+    const imgRatio = img.width / img.height;
 
-      let drawWidth: number, drawHeight: number, offsetX: number, offsetY: number;
+    let drawWidth: number, drawHeight: number, offsetX: number, offsetY: number;
 
-      if (canvasRatio > imgRatio) {
-        drawWidth = canvas.width;
-        drawHeight = canvas.width / imgRatio;
-        offsetX = 0;
-        offsetY = (canvas.height - drawHeight) / 2;
-      } else {
-        drawHeight = canvas.height;
-        drawWidth = canvas.height * imgRatio;
-        offsetX = (canvas.width - drawWidth) / 2;
-        offsetY = 0;
-      }
+    if (canvasRatio > imgRatio) {
+      drawWidth = w;
+      drawHeight = w / imgRatio;
+      offsetX = 0;
+      offsetY = (h - drawHeight) / 2;
+    } else {
+      drawHeight = h;
+      drawWidth = h * imgRatio;
+      offsetX = (w - drawWidth) / 2;
+      offsetY = 0;
+    }
 
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-    };
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+  }, [getRenderableImage]);
 
-    drawFrame();
-  }, [currentFrame, isReady, images]);
+  // Redraw when currentFrame changes or when first frame arrives
+  useEffect(() => {
+    let animId: number;
+    animId = requestAnimationFrame(() => {
+      renderFrame(currentFrame);
+    });
+    return () => cancelAnimationFrame(animId);
+  }, [currentFrame, firstFrameLoaded, renderFrame]);
 
+  // Window resize handler (only registered ONCE, passive)
   useEffect(() => {
     const handleResize = () => {
-      const canvas = canvasRef.current;
-      if (!canvas || !isReady) return;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      const img = images[currentFrame];
-      if (!img || !img.complete) return;
-
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-
-      const canvasRatio = canvas.width / canvas.height;
-      const imgRatio = img.width / img.height;
-
-      let drawWidth: number, drawHeight: number, offsetX: number, offsetY: number;
-
-      if (canvasRatio > imgRatio) {
-        drawWidth = canvas.width;
-        drawHeight = canvas.width / imgRatio;
-        offsetX = 0;
-        offsetY = (canvas.height - drawHeight) / 2;
-      } else {
-        drawHeight = canvas.height;
-        drawWidth = canvas.height * imgRatio;
-        offsetX = (canvas.width - drawWidth) / 2;
-        offsetY = 0;
-      }
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+      renderFrame(currentFrame);
     };
-
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", handleResize, { passive: true });
     return () => window.removeEventListener("resize", handleResize);
-  }, [currentFrame, isReady, images]);
+  }, [currentFrame, renderFrame]);
 
   return (
     <div ref={wrapperRef} className="preserve-white h-[300vh] bg-black">
@@ -257,11 +260,11 @@ export default function Hero() {
         <div className="absolute inset-0 z-0">
           <canvas
             ref={canvasRef}
-            className="h-full w-full object-cover opacity-40"
+            className={`h-full w-full object-cover transition-opacity duration-500 ${firstFrameLoaded ? "opacity-45" : "opacity-0"}`}
           />
-          {!isReady && (
+          {!firstFrameLoaded && (
             <div
-              className="h-full w-full bg-cover bg-center opacity-25"
+              className="h-full w-full bg-cover bg-center opacity-30 transition-opacity duration-700"
               style={{ backgroundImage: "url('/hero_banner.png')" }}
             />
           )}

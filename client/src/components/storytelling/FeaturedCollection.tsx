@@ -19,6 +19,7 @@ export default function FeaturedCollection() {
   return (
     <section
       ref={ref}
+      id="featured-collection"
       className="relative overflow-hidden bg-[#080808] py-24 sm:py-32 lg:py-44"
     >
       {/* Subtle top divider line */}

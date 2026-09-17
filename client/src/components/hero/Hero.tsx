@@ -358,8 +358,8 @@ export default function Hero() {
             <MagneticButton variant="primary" onClick={() => router.push("/shop")}>
               Explore Collection
             </MagneticButton>
-            <MagneticButton variant="secondary" onClick={() => document.getElementById("featured-collection")?.scrollIntoView({ behavior: "smooth" })}>
-              Watch Film
+            <MagneticButton variant="secondary" onClick={() => router.push("/about")}>
+              Brand Story
             </MagneticButton>
           </motion.div>
 

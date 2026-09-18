@@ -19,7 +19,6 @@ export interface User {
   phone?: string;
   avatar?: string;
   role?: string;
-  savedPassword?: string;
   addresses: Address[];
   createdAt?: string;
   updatedAt?: string;

@@ -17,30 +17,9 @@ interface AuthContextType {
   setDefaultAddress: (id: string) => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-interface StoredUser extends User {
-  password: string;
-}
-
-function getStoredUsers(): StoredUser[] {
-  if (typeof window === "undefined") return [];
-  const saved = localStorage.getItem("noir-users");
-  if (saved) {
-    try {
-      return JSON.parse(saved);
-    } catch {
-      return [];
-    }
-  }
-  return [];
-}
-
-function saveStoredUsers(users: StoredUser[]) {
-  localStorage.setItem("noir-users", JSON.stringify(users));
-}
-
 import { getBaseUrl } from "@/config/api";
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -49,23 +28,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
+    // Cleanup any legacy plaintext passwords stored in localStorage
+    try {
+      localStorage.removeItem("noir-user-pwd");
+      localStorage.removeItem("noir-users");
+    } catch {}
+
     const token = localStorage.getItem("token");
     const saved = localStorage.getItem("noir-current-user");
-    let cachedPwd = localStorage.getItem("noir-user-pwd");
-    // Clean up any accidentally cached admin password
-    if (cachedPwd === "admin@3428") {
-      localStorage.removeItem("noir-user-pwd");
-      cachedPwd = null;
-    }
 
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.savedPassword === "admin@3428") {
+        if (parsed.savedPassword) {
           delete parsed.savedPassword;
-        }
-        if (!parsed.savedPassword && cachedPwd) {
-          parsed.savedPassword = cachedPwd;
         }
         setUser(parsed);
       } catch {
@@ -84,7 +60,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (res.status === 401) {
               localStorage.removeItem("token");
               localStorage.removeItem("noir-current-user");
-              localStorage.removeItem("noir-user-pwd");
               setUser(null);
             }
             return null;
@@ -93,22 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
         .then((data) => {
           if (data) {
-            let pwd = localStorage.getItem("noir-user-pwd") || undefined;
-            if (pwd === "admin@3428") {
-              localStorage.removeItem("noir-user-pwd");
-              pwd = undefined;
-            }
-            if (!pwd) {
-              const users = getStoredUsers();
-              const found = users.find(
-                (u) => u.email.toLowerCase() === data.email?.toLowerCase()
-              );
-              if (found?.password && found.password !== "admin@3428") {
-                pwd = found.password;
-                localStorage.setItem("noir-user-pwd", pwd);
-              }
-            }
-            const userObj = {
+            const userObj: User = {
               _id: data._id || data.id,
               id: data._id || data.id,
               name: data.name,
@@ -116,7 +76,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               phone: data.phone || (data.addresses && data.addresses[0]?.phone) || "",
               avatar: data.avatar,
               role: data.role,
-              savedPassword: pwd,
               addresses: data.addresses || [],
             };
             setUser(userObj);
@@ -148,16 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: data.message || "Login failed" };
       }
       localStorage.setItem("token", data.token);
-      let pwdToSave = password;
-      if (email === "shubhamwadje2005@gmail.com" || password === "admin@3428") {
-        pwdToSave = "";
-      }
-      if (pwdToSave) {
-        localStorage.setItem("noir-user-pwd", pwdToSave);
-      } else {
-        localStorage.removeItem("noir-user-pwd");
-      }
-      const userObj = {
+
+      const userObj: User = {
         _id: data.user._id || data.user.id,
         id: data.user._id || data.user.id,
         name: data.user.name,
@@ -165,7 +116,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         phone: data.user.phone || (data.user.addresses && data.user.addresses[0]?.phone) || "",
         avatar: data.user.avatar,
         role: data.user.role,
-        savedPassword: pwdToSave || undefined,
         addresses: data.user.addresses || [],
       };
       setUser(userObj);
@@ -196,10 +146,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return { success: false, error: data.message || "Registration failed" };
         }
         localStorage.setItem("token", data.token);
-        if (password && password !== "admin@3428") {
-          localStorage.setItem("noir-user-pwd", password);
-        }
-        const userObj = {
+
+        const userObj: User = {
           _id: data.user._id || data.user.id,
           id: data.user._id || data.user.id,
           name: data.user.name,
@@ -207,7 +155,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           phone: data.user.phone || phone || "",
           avatar: data.user.avatar || avatar,
           role: data.user.role,
-          savedPassword: password && password !== "admin@3428" ? password : undefined,
           addresses: data.user.addresses || [],
         };
         setUser(userObj);
@@ -225,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("token");
     localStorage.removeItem("noir-current-user");
     localStorage.removeItem("noir-user-pwd");
+    localStorage.removeItem("noir-users");
   }, []);
 
   const updateProfile = useCallback(
@@ -256,19 +204,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               error: resData.message || "Failed to update profile",
             };
           }
-          let pwd = data.password || user.savedPassword;
-          if (pwd === "admin@3428") {
-            pwd = undefined;
-            localStorage.removeItem("noir-user-pwd");
-          } else if (pwd) {
-            localStorage.setItem("noir-user-pwd", pwd);
-          }
+
           const updated: User = {
             ...user,
             name: resData.name || data.name || user.name,
             phone: resData.phone !== undefined ? resData.phone : (data.phone ?? user.phone),
             avatar: resData.avatar !== undefined ? resData.avatar : (data.avatar ?? user.avatar),
-            savedPassword: pwd,
             addresses: resData.addresses || user.addresses,
           };
           setUser(updated);
@@ -284,7 +225,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...user,
           ...data,
           phone: data.phone ?? user.phone,
-          savedPassword: data.password || user.savedPassword,
         };
         setUser(updated);
         return { success: true };

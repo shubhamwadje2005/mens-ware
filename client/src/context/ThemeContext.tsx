@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 
 export type Theme = "dark" | "light" | "system";
 export type ResolvedTheme = "dark" | "light";
@@ -83,28 +83,33 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, [theme, applyTheme]);
 
-  const setTheme = (newTheme: Theme) => {
+  const setTheme = useCallback((newTheme: Theme) => {
     setThemeState(newTheme);
-  };
+  }, []);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setThemeState((prev) => {
       const current = prev === "system" ? getSystemTheme() : prev;
       return current === "dark" ? "light" : "dark";
     });
-  };
+  }, []);
+
+  const isDark = resolvedTheme === "dark";
+
+  const contextValue = useMemo(
+    () => ({
+      theme,
+      resolvedTheme,
+      isDark,
+      setTheme,
+      toggleTheme,
+      mounted,
+    }),
+    [theme, resolvedTheme, isDark, setTheme, toggleTheme, mounted]
+  );
 
   return (
-    <ThemeContext.Provider
-      value={{
-        theme,
-        resolvedTheme,
-        isDark: resolvedTheme === "dark",
-        setTheme,
-        toggleTheme,
-        mounted,
-      }}
-    >
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );

@@ -46,4 +46,9 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Compound indexes for user orders and status sorting
+orderSchema.index({ user: 1, isDeleted: 1, createdAt: -1 });
+orderSchema.index({ isDeleted: 1, status: 1, createdAt: -1 });
+orderSchema.index({ paymentStatus: 1, createdAt: -1 });
+
 module.exports = mongoose.model("Order", orderSchema);

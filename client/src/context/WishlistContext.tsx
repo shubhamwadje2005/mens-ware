@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from "react";
 import { WishlistItem, Product } from "@/types";
 
 interface WishlistContextType {
@@ -76,18 +76,23 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     setItems([]);
   }, []);
 
+  const totalItems = items.length;
+
+  const contextValue = useMemo(
+    () => ({
+      items,
+      addItem,
+      removeItem,
+      toggleItem,
+      isInWishlist,
+      totalItems,
+      clearWishlist,
+    }),
+    [items, addItem, removeItem, toggleItem, isInWishlist, totalItems, clearWishlist]
+  );
+
   return (
-    <WishlistContext.Provider
-      value={{
-        items,
-        addItem,
-        removeItem,
-        toggleItem,
-        isInWishlist,
-        totalItems: items.length,
-        clearWishlist,
-      }}
-    >
+    <WishlistContext.Provider value={contextValue}>
       {children}
     </WishlistContext.Provider>
   );

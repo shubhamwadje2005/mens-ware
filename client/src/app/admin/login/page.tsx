@@ -96,14 +96,6 @@ export default function AdminLoginPage() {
           </button>
         </form>
 
-        {/* <div className="mt-6 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-1">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30 mb-1">Admin Credentials</p>
-          <p className="text-xs text-white/40">Email: <span className="text-[#ff6b00]">shubhamwadje2005@gmail.com</span></p>
-          <p className="text-xs text-white/40">Pass: <span className="text-[#ff6b00]">admin@3428</span></p>
-          <div className="h-px bg-white/5 my-1" />
-          <p className="text-xs text-white/40">Email: <span className="text-[#ff6b00]">admin@noirstudio.com</span></p>
-          <p className="text-xs text-white/40">Pass: <span className="text-[#ff6b00]">admin123</span></p>
-        </div> */}
       </div>
     </div>
   );

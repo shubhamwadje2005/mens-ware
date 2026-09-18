@@ -54,7 +54,6 @@ function ProfileContent() {
   const [avatar, setAvatar] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showViewPassword, setShowViewPassword] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -76,22 +75,13 @@ function ProfileContent() {
 
   const [isAvatarRemoved, setIsAvatarRemoved] = useState(false);
 
-  const getCleanCachedPassword = (u: any) => {
-    if (u?.savedPassword && u.savedPassword !== "admin@3428") return u.savedPassword;
-    if (typeof window !== "undefined") {
-      const p = localStorage.getItem("noir-user-pwd");
-      if (p && p !== "admin@3428") return p;
-    }
-    return "";
-  };
-
   const handleStartEdit = () => {
     if (user) {
       setName(user.name || "");
       setEmail(user.email || "");
       setPhone(user.phone || (user.addresses && user.addresses[0]?.phone) || "");
       setAvatar(user.avatar || "");
-      setPassword(getCleanCachedPassword(user));
+      setPassword("");
     }
     setProfileError(null);
     setIsAvatarRemoved(false);
@@ -136,7 +126,7 @@ function ProfileContent() {
       setEmail(user.email || "");
       setPhone(user.phone || (user.addresses && user.addresses[0]?.phone) || "");
       setAvatar(user.avatar || "");
-      setPassword(getCleanCachedPassword(user));
+      setPassword("");
     }
   }, [user]);
 
@@ -146,7 +136,7 @@ function ProfileContent() {
       setEmail(user.email || "");
       setPhone(user.phone || (user.addresses && user.addresses[0]?.phone) || "");
       setAvatar(user.avatar || "");
-      setPassword(getCleanCachedPassword(user));
+      setPassword("");
     }
     setProfileError(null);
     setIsAvatarRemoved(false);
@@ -240,7 +230,7 @@ function ProfileContent() {
     }
 
     const finalPassword = password ? password.trim() : "";
-    if (finalPassword && finalPassword !== user?.savedPassword && finalPassword.length < 6) {
+    if (finalPassword && finalPassword.length < 6) {
       setProfileError("Password must be at least 6 characters.");
       setSavingProfile(false);
       return;
@@ -264,7 +254,7 @@ function ProfileContent() {
       removeAvatar: isAvatarRemoved,
     };
 
-    if (finalPassword && finalPassword !== user?.savedPassword && finalPassword !== "admin@3428") {
+    if (finalPassword) {
       payload.password = finalPassword;
     }
 
@@ -272,9 +262,7 @@ function ProfileContent() {
     setSavingProfile(false);
 
     if (res.success) {
-      if (finalPassword) {
-        setPassword(finalPassword);
-      }
+      setPassword("");
       setIsEditing(false);
       setIsAvatarRemoved(false);
       setProfileSuccess(true);
@@ -449,25 +437,11 @@ function ProfileContent() {
                           <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-1">Phone Number</p>
                           <p className="text-sm font-medium text-neutral-900 dark:text-white">{user?.phone || "Not set"}</p>
                         </div>
-                        <div className="rounded-xl border border-black/10 dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] p-4 flex items-center justify-between">
-                          <div>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-1">Password</p>
-                            <p className="text-sm font-medium text-neutral-900 dark:text-white font-mono tracking-wider">
-                              {user?.savedPassword && user.savedPassword !== "admin@3428"
-                                ? (showViewPassword ? user.savedPassword : "••••••••")
-                                : "••••••••"}
-                            </p>
-                          </div>
-                          {user?.savedPassword && user.savedPassword !== "admin@3428" && (
-                            <button
-                              type="button"
-                              onClick={() => setShowViewPassword(!showViewPassword)}
-                              className="p-1.5 rounded-lg text-neutral-400 dark:text-white/40 hover:text-neutral-900 dark:hover:text-white transition-colors"
-                              title={showViewPassword ? "Hide password" : "Show password"}
-                            >
-                              {showViewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                            </button>
-                          )}
+                        <div className="rounded-xl border border-black/10 dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] p-4">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 dark:text-white/40 mb-1">Password</p>
+                          <p className="text-sm font-medium text-neutral-900 dark:text-white font-mono tracking-wider">
+                            ••••••••
+                          </p>
                         </div>
                       </div>
 
@@ -617,17 +591,17 @@ function ProfileContent() {
                         <div>
                           <div className="flex items-center justify-between mb-2">
                             <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-white/40">
-                              Account Password
+                              New Password
                             </label>
                             <span className="text-[11px] text-neutral-400 dark:text-white/40">
-                              {password ? "(Click eye icon to view or edit)" : "(Leave blank to keep current password)"}
+                              (Leave blank to keep current password)
                             </span>
                           </div>
                           <div className="relative">
                             <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 dark:text-white/30" />
                             <input
                               type={showPassword ? "text" : "password"}
-                              placeholder={password ? "Enter account password" : "Enter new password (min 6 chars, or leave blank)"}
+                              placeholder="Enter new password (min 6 characters)"
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
                               className="w-full rounded-xl border border-black/10 dark:border-white/10 bg-black/[0.03] dark:bg-white/5 py-3 pl-11 pr-11 text-sm text-neutral-900 dark:text-white outline-none focus:border-[#ff6b00]/50 transition-colors placeholder:text-neutral-400 dark:placeholder:text-white/20"

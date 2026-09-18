@@ -171,4 +171,10 @@ productSchema.pre("save", function () {
   }
 });
 
+// Compound indexes for high-frequency queries
+productSchema.index({ isDeleted: 1, status: 1, category: 1, createdAt: -1 });
+productSchema.index({ isDeleted: 1, status: 1, price: 1 });
+productSchema.index({ isDeleted: 1, brand: 1 });
+productSchema.index({ isDeleted: 1, gender: 1 });
+
 module.exports = mongoose.model("Product", productSchema);

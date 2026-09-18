@@ -2,7 +2,16 @@ const jwt = require("jsonwebtoken");
 const User = require("../modal/User");
 const Admin = require("../modal/Admin");
 
-const getSecretKey = () => process.env.JWT_KEY || process.env.JWT_SECRET || "secret";
+const getSecretKey = () => {
+  const secret = process.env.JWT_KEY || process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("CRITICAL SECURITY ERROR: JWT_SECRET or JWT_KEY environment variable is not set.");
+    }
+    return "dev_fallback_key_strictly_for_local_testing_change_in_production";
+  }
+  return secret;
+};
 
 const auth = async (req, res, next) => {
   try {
@@ -19,7 +28,7 @@ const auth = async (req, res, next) => {
     if (!user) {
       const adminDoc = await Admin.findById(userId).select("-password");
       if (adminDoc) {
-        user = { ...adminDoc.toObject(), role: "admin" };
+        user = { ...adminDoc.toObject(), role: "admin", IsActive: adminDoc.IsActive };
       }
     }
 
@@ -53,11 +62,8 @@ const adminAuth = async (req, res, next) => {
 
     if (!user) return res.status(401).json({ message: "Token is not valid" });
 
-    const isAuthorizedAdmin =
-      user.role === "admin" ||
-      user.IsActive === true ||
-      user.email === "admin@noirstudio.com" ||
-      user.email === "shubhamwadje2005@gmail.com";
+    // SEC-004 Fix: Check administrative authorization strictly via role and active status, avoiding hardcoded emails
+    const isAuthorizedAdmin = user.role === "admin" && user.IsActive !== false;
 
     if (!isAuthorizedAdmin) {
       return res.status(403).json({ message: "Access denied. Admin only." });

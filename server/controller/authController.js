@@ -4,7 +4,11 @@ const bcryptjs = require("bcryptjs");
 const Admin = require("../modal/Admin");
 
 const generateToken = (userId) => {
-  return jwt.sign({ id: userId }, process.env.JWT_KEY, { expiresIn: "7d" });
+  const secret = process.env.JWT_KEY || process.env.JWT_SECRET;
+  if (!secret && process.env.NODE_ENV === "production") {
+    throw new Error("JWT_SECRET is not configured");
+  }
+  return jwt.sign({ id: userId, _id: userId }, secret || "dev_key_local_only", { expiresIn: "7d" });
 };
 
 exports.register = async (req, res) => {
@@ -139,7 +143,29 @@ exports.updateProfile = async (req, res) => {
 exports.addAddress = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-    user.addresses.push(req.body);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const { name, phone, addressLine1, addressLine2, city, state, pincode, isDefault } = req.body;
+    if (!name || !phone || !addressLine1 || !city || !state || !pincode) {
+      return res.status(400).json({ message: "Name, phone, addressLine1, city, state, and pincode are required." });
+    }
+
+    const cleanAddress = {
+      name: String(name).trim(),
+      phone: String(phone).trim(),
+      addressLine1: String(addressLine1).trim(),
+      addressLine2: addressLine2 ? String(addressLine2).trim() : "",
+      city: String(city).trim(),
+      state: String(state).trim(),
+      pincode: String(pincode).trim(),
+      isDefault: Boolean(isDefault),
+    };
+
+    if (cleanAddress.isDefault && user.addresses.length > 0) {
+      user.addresses.forEach((a) => (a.isDefault = false));
+    }
+
+    user.addresses.push(cleanAddress);
     await user.save();
     res.json(user.addresses);
   } catch (err) {
@@ -150,9 +176,28 @@ exports.addAddress = async (req, res) => {
 exports.updateAddress = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
     const address = user.addresses.id(req.params.addressId);
     if (!address) return res.status(404).json({ message: "Address not found" });
-    Object.assign(address, req.body);
+
+    const { name, phone, addressLine1, addressLine2, city, state, pincode, isDefault } = req.body;
+    if (name) address.name = String(name).trim();
+    if (phone) address.phone = String(phone).trim();
+    if (addressLine1) address.addressLine1 = String(addressLine1).trim();
+    if (addressLine2 !== undefined) address.addressLine2 = String(addressLine2).trim();
+    if (city) address.city = String(city).trim();
+    if (state) address.state = String(state).trim();
+    if (pincode) address.pincode = String(pincode).trim();
+    if (isDefault !== undefined) {
+      address.isDefault = Boolean(isDefault);
+      if (address.isDefault) {
+        user.addresses.forEach((a) => {
+          if (a._id.toString() !== req.params.addressId) a.isDefault = false;
+        });
+      }
+    }
+
     await user.save();
     res.json(user.addresses);
   } catch (err) {
@@ -163,6 +208,8 @@ exports.updateAddress = async (req, res) => {
 exports.deleteAddress = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
     user.addresses = user.addresses.filter(
       (a) => a._id.toString() !== req.params.addressId
     );
@@ -173,9 +220,7 @@ exports.deleteAddress = async (req, res) => {
   }
 };
 
-
 //  admin login and logout
-
 exports.adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -183,28 +228,41 @@ exports.adminLogin = async (req, res) => {
       return res.status(400).json({ message: "Email and Password are required" });
     }
 
-    const result = await Admin.findOne({ email })
+    const cleanEmail = typeof email === "string" ? email.toLowerCase().trim() : "";
+    const result = await Admin.findOne({ email: cleanEmail });
     if (!result) {
-      return res.status(401).json({ message: "Invalid Credentials" })
+      return res.status(401).json({ message: "Invalid Credentials" });
     }
 
     if (!result.IsActive) {
-      return res.status(401).json({ message: "Account Blocked By SuperAdmin" })
+      return res.status(401).json({ message: "Account Blocked By SuperAdmin" });
     }
 
-    const verify = await bcryptjs.compare(password, result.password)
+    const verify = await bcryptjs.compare(password, result.password);
     if (!verify) {
-      return res.status(401).json({ message: "Invalid Password" })
+      return res.status(401).json({ message: "Invalid Password" });
     }
 
     const isProduction = process.env.NODE_ENV === "production";
-    const token = jwt.sign({ _id: result._id }, process.env.JWT_KEY || "secret");
+    const jwtSecret = process.env.JWT_KEY || process.env.JWT_SECRET;
+    if (!jwtSecret && isProduction) {
+      throw new Error("JWT_SECRET is not configured");
+    }
+
+    // SEC-007 Fix: Set 1-day expiration on Admin tokens
+    const token = jwt.sign(
+      { _id: result._id, id: result._id, role: "admin" },
+      jwtSecret || "dev_admin_key_local_only",
+      { expiresIn: "1d" }
+    );
+
     res.cookie("ADMIN", token, {
       maxAge: 1000 * 60 * 60 * 24,
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "none" : "lax",
     });
+
     res.status(200).json({
       message: "Admin Login Success",
       token,

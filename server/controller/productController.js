@@ -21,14 +21,17 @@ exports.getAllProducts = async (req, res) => {
     if (gender) query.gender = gender;
     if (status) query.status = status;
 
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { brand: { $regex: search, $options: "i" } },
-        { category: { $regex: search, $options: "i" } },
-        { sku: { $regex: search, $options: "i" } },
-        { tags: { $in: [new RegExp(search, "i")] } },
-      ];
+    if (search && typeof search === "string") {
+      const sanitized = search.trim().slice(0, 80).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (sanitized) {
+        query.$or = [
+          { name: { $regex: sanitized, $options: "i" } },
+          { brand: { $regex: sanitized, $options: "i" } },
+          { category: { $regex: sanitized, $options: "i" } },
+          { sku: { $regex: sanitized, $options: "i" } },
+          { tags: { $in: [new RegExp(sanitized, "i")] } },
+        ];
+      }
     }
 
     if (minPrice || maxPrice) {

@@ -31,4 +31,7 @@ const messageSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Compound index for message inbox sorting & read filter
+messageSchema.index({ isRead: 1, createdAt: -1 });
+
 module.exports = mongoose.model("Message", messageSchema);

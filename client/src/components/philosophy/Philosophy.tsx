@@ -43,7 +43,7 @@ export default function Philosophy() {
           {/* Huge text lines */}
           <div className="overflow-hidden py-2 sm:py-3">
             <motion.h2
-              className="text-[clamp(2rem,8vw,7rem)] font-light leading-[0.92] tracking-[-0.02em] text-white/80"
+              className="text-[clamp(2rem,8vw,7rem)] font-light leading-[0.92] tracking-[-0.02em] text-white/80 transform-gpu will-change-transform"
               style={{ x: x1 }}
             >
               CRAFTED WITH
@@ -51,7 +51,7 @@ export default function Philosophy() {
           </div>
           <div className="overflow-hidden py-2 sm:py-3">
             <motion.h2
-              className="text-[clamp(2rem,8vw,7rem)] font-light leading-[0.92] tracking-[-0.02em] bg-gradient-to-r from-[#ffa048] via-[#ff6b00] to-[#c2410c] bg-clip-text text-transparent"
+              className="text-[clamp(2rem,8vw,7rem)] font-light leading-[0.92] tracking-[-0.02em] bg-gradient-to-r from-[#ffa048] via-[#ff6b00] to-[#c2410c] bg-clip-text text-transparent transform-gpu will-change-transform"
               style={{ x: x2 }}
             >
               INTENTION
@@ -59,7 +59,7 @@ export default function Philosophy() {
           </div>
           <div className="overflow-hidden py-2 sm:py-3">
             <motion.h2
-              className="text-[clamp(2rem,8vw,7rem)] font-light leading-[0.92] tracking-[-0.02em] text-white/80"
+              className="text-[clamp(2rem,8vw,7rem)] font-light leading-[0.92] tracking-[-0.02em] text-white/80 transform-gpu will-change-transform"
               style={{ x: x1 }}
             >
               BORN FROM
@@ -67,7 +67,7 @@ export default function Philosophy() {
           </div>
           <div className="overflow-hidden py-2 sm:py-3">
             <motion.h2
-              className="text-[clamp(2rem,8vw,7rem)] font-light leading-[0.92] tracking-[-0.02em] bg-gradient-to-r from-[#ffa048] via-[#ff6b00] to-[#c2410c] bg-clip-text text-transparent"
+              className="text-[clamp(2rem,8vw,7rem)] font-light leading-[0.92] tracking-[-0.02em] bg-gradient-to-r from-[#ffa048] via-[#ff6b00] to-[#c2410c] bg-clip-text text-transparent transform-gpu will-change-transform"
               style={{ x: x2 }}
             >
               VISION

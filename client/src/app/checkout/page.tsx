@@ -258,20 +258,18 @@ function CheckoutContent() {
             <div className="flex items-center gap-4 mb-10">
               {steps.map((s, i) => (
                 <div key={s.key} className="flex items-center gap-2">
-                  <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
-                    step === s.key ? "bg-[#ff6b00] text-black" :
-                    steps.findIndex((x) => x.key === step) > i ? "bg-green-500/20 text-green-400" :
-                    "border border-white/10 text-white/30"
-                  }`}>
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${step === s.key ? "bg-[#ff6b00] text-black" :
+                      steps.findIndex((x) => x.key === step) > i ? "bg-green-500/20 text-green-400" :
+                        "border border-white/10 text-white/30"
+                    }`}>
                     {steps.findIndex((x) => x.key === step) > i ? (
                       <CheckCircle size={14} />
                     ) : (
                       <s.icon size={14} />
                     )}
                   </div>
-                  <span className={`text-xs font-medium hidden sm:block ${
-                    step === s.key ? "text-white" : "text-white/30"
-                  }`}>{s.label}</span>
+                  <span className={`text-xs font-medium hidden sm:block ${step === s.key ? "text-white" : "text-white/30"
+                    }`}>{s.label}</span>
                   {i < steps.length - 1 && <div className="w-8 sm:w-16 h-px bg-white/10" />}
                 </div>
               ))}
@@ -371,17 +369,15 @@ function CheckoutContent() {
                         <div
                           key={addressId}
                           onClick={() => setSelectedAddressId(addressId)}
-                          className={`flex items-start gap-4 rounded-xl border p-4 cursor-pointer transition-all ${
-                            selectedAddressId === addressId || (!selectedAddressId && addr.isDefault)
+                          className={`flex items-start gap-4 rounded-xl border p-4 cursor-pointer transition-all ${selectedAddressId === addressId || (!selectedAddressId && addr.isDefault)
                               ? "border-[#ff6b00]/50 bg-[#ff6b00]/5"
                               : "border-white/[0.06] bg-[#0c0c0c] hover:border-white/10"
-                          }`}
+                            }`}
                         >
-                          <div className={`mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center ${
-                            selectedAddressId === addressId || (!selectedAddressId && addr.isDefault)
+                          <div className={`mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center ${selectedAddressId === addressId || (!selectedAddressId && addr.isDefault)
                               ? "border-[#ff6b00]"
                               : "border-white/20"
-                          }`}>
+                            }`}>
                             {(selectedAddressId === addressId || (!selectedAddressId && addr.isDefault)) && (
                               <div className="h-2 w-2 rounded-full bg-[#ff6b00]" />
                             )}
@@ -450,15 +446,13 @@ function CheckoutContent() {
                   <div className="space-y-3 mb-8">
                     <div
                       onClick={() => setPaymentMethod("cod")}
-                      className={`flex items-center gap-4 rounded-xl border p-4 cursor-pointer transition-all ${
-                        paymentMethod === "cod"
+                      className={`flex items-center gap-4 rounded-xl border p-4 cursor-pointer transition-all ${paymentMethod === "cod"
                           ? "border-[#ff6b00]/50 bg-[#ff6b00]/5"
                           : "border-white/[0.06] bg-[#0c0c0c] hover:border-white/10"
-                      }`}
+                        }`}
                     >
-                      <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
-                        paymentMethod === "cod" ? "border-[#ff6b00]" : "border-white/20"
-                      }`}>
+                      <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${paymentMethod === "cod" ? "border-[#ff6b00]" : "border-white/20"
+                        }`}>
                         {paymentMethod === "cod" && <div className="h-2 w-2 rounded-full bg-[#ff6b00]" />}
                       </div>
                       <Truck size={18} className="text-white/40" />
@@ -470,15 +464,13 @@ function CheckoutContent() {
 
                     <div
                       onClick={() => setPaymentMethod("online")}
-                      className={`flex items-center gap-4 rounded-xl border p-4 cursor-pointer transition-all ${
-                        paymentMethod === "online"
+                      className={`flex items-center gap-4 rounded-xl border p-4 cursor-pointer transition-all ${paymentMethod === "online"
                           ? "border-[#ff6b00]/50 bg-[#ff6b00]/5"
                           : "border-white/[0.06] bg-[#0c0c0c] hover:border-white/10"
-                      }`}
+                        }`}
                     >
-                      <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
-                        paymentMethod === "online" ? "border-[#ff6b00]" : "border-white/20"
-                      }`}>
+                      <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${paymentMethod === "online" ? "border-[#ff6b00]" : "border-white/20"
+                        }`}>
                         {paymentMethod === "online" && <div className="h-2 w-2 rounded-full bg-[#ff6b00]" />}
                       </div>
                       <CreditCard size={18} className="text-white/40" />

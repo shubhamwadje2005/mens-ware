@@ -16,7 +16,7 @@ function Particles() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
     canvas.width = window.innerWidth;
@@ -31,15 +31,15 @@ function Particles() {
       opacity: number;
     }> = [];
 
-    const count = window.innerWidth < 640 ? 25 : 50;
+    const count = window.innerWidth < 768 ? 12 : 28;
     for (let i = 0; i < count; i++) {
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
+        vx: (Math.random() - 0.5) * 0.25,
+        vy: (Math.random() - 0.5) * 0.25,
         size: Math.random() * 2 + 1,
-        opacity: Math.random() * 0.5 + 0.1,
+        opacity: Math.random() * 0.4 + 0.1,
       });
     }
 
@@ -74,9 +74,11 @@ function Particles() {
         if (isVisible) {
           cancelAnimationFrame(animationId);
           animationId = requestAnimationFrame(animate);
+        } else {
+          cancelAnimationFrame(animationId);
         }
       },
-      { threshold: 0 }
+      { threshold: 0.05 }
     );
     observer.observe(canvas);
 
@@ -99,7 +101,7 @@ function Particles() {
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none absolute inset-0 z-10"
+      className="pointer-events-none absolute inset-0 z-10 will-change-transform"
     />
   );
 }
@@ -109,32 +111,53 @@ function Spotlight() {
   const posRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
+    // Skip on touch-only devices to save battery and GPU
+    if (typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches) {
+      return;
+    }
+
     const spotlight = document.getElementById("hero-spotlight");
     if (!spotlight) return;
 
     let isVisible = true;
     let animationId: number;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY };
-    };
+    let isRunning = false;
 
     const animate = () => {
-      if (!isVisible) return;
-      posRef.current.x += (mouseRef.current.x - posRef.current.x) * 0.08;
-      posRef.current.y += (mouseRef.current.y - posRef.current.y) * 0.08;
+      if (!isVisible) {
+        isRunning = false;
+        return;
+      }
+      const dx = mouseRef.current.x - posRef.current.x;
+      const dy = mouseRef.current.y - posRef.current.y;
+      posRef.current.x += dx * 0.08;
+      posRef.current.y += dy * 0.08;
 
       spotlight.style.background = `radial-gradient(600px circle at ${posRef.current.x}px ${posRef.current.y}px, rgba(255, 107, 0, 0.06), transparent 60%)`;
 
-      animationId = requestAnimationFrame(animate);
+      // Only continue loop while moving; pause when settled
+      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+        animationId = requestAnimationFrame(animate);
+      } else {
+        isRunning = false;
+      }
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+      if (!isRunning) {
+        isRunning = true;
+        cancelAnimationFrame(animationId);
+        animationId = requestAnimationFrame(animate);
+      }
     };
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         isVisible = entry.isIntersecting;
-        if (isVisible) {
+        if (!isVisible) {
+          isRunning = false;
           cancelAnimationFrame(animationId);
-          animationId = requestAnimationFrame(animate);
         }
       },
       { threshold: 0 }
@@ -142,7 +165,6 @@ function Spotlight() {
     observer.observe(spotlight);
 
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
-    animate();
 
     return () => {
       observer.disconnect();
@@ -154,7 +176,7 @@ function Spotlight() {
   return (
     <div
       id="hero-spotlight"
-      className="pointer-events-none absolute inset-0 z-20"
+      className="pointer-events-none absolute inset-0 z-20 will-change-transform"
     />
   );
 }
@@ -260,7 +282,7 @@ export default function Hero() {
         <div className="absolute inset-0 z-0">
           <canvas
             ref={canvasRef}
-            className={`h-full w-full object-cover transition-opacity duration-500 ${firstFrameLoaded ? "opacity-45" : "opacity-0"}`}
+            className={`h-full w-full object-cover transition-opacity duration-500 will-change-transform ${firstFrameLoaded ? "opacity-45" : "opacity-0"}`}
           />
           {!firstFrameLoaded && (
             <div

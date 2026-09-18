@@ -26,10 +26,16 @@ function HorizontalGalleryTrack({ items }: { items: GalleryItem[] }) {
 
     let st: ScrollTrigger | undefined;
     let tween: gsap.core.Tween | undefined;
+    let lastWidth = typeof window !== "undefined" ? window.innerWidth : 0;
 
     const setupScroll = () => {
       if (!containerRef.current || !scrollRef.current) return;
-      if (window.innerWidth < 768) return;
+      if (window.innerWidth < 768) {
+        if (st) st.kill();
+        if (tween) tween.kill();
+        gsap.set(scrollRef.current, { clearProps: "all" });
+        return;
+      }
 
       if (st) st.kill();
       if (tween) tween.kill();
@@ -54,25 +60,27 @@ function HorizontalGalleryTrack({ items }: { items: GalleryItem[] }) {
         anticipatePin: 1,
         invalidateOnRefresh: true,
       });
-
-      ScrollTrigger.refresh();
     };
 
     setupScroll();
 
-    const resizeObserver = new ResizeObserver(() => {
-      setupScroll();
-    });
+    let resizeTimer: ReturnType<typeof setTimeout>;
+    const handleResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (Math.abs(window.innerWidth - lastWidth) > 30) {
+          lastWidth = window.innerWidth;
+          setupScroll();
+          ScrollTrigger.refresh();
+        }
+      }, 250);
+    };
 
-    resizeObserver.observe(scrollRef.current);
-
-    const timer1 = setTimeout(() => ScrollTrigger.refresh(), 300);
-    const timer2 = setTimeout(() => ScrollTrigger.refresh(), 1000);
+    window.addEventListener("resize", handleResize, { passive: true });
 
     return () => {
-      resizeObserver.disconnect();
-      clearTimeout(timer1);
-      clearTimeout(timer2);
+      window.removeEventListener("resize", handleResize);
+      clearTimeout(resizeTimer);
       if (st) st.kill();
       if (tween) tween.kill();
     };

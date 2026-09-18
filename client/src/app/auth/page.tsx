@@ -81,17 +81,15 @@ function AuthForm() {
           <div className="mb-8 flex rounded-full bg-black/5 dark:bg-white/5 p-1">
             <button
               onClick={() => setIsLogin(true)}
-              className={`flex-1 rounded-full py-2 text-xs font-semibold uppercase tracking-wider transition-all ${
-                isLogin ? "bg-[#ff6b00] text-black shadow-md" : "text-neutral-500 dark:text-white/50 hover:text-neutral-900 dark:hover:text-white"
-              }`}
+              className={`flex-1 rounded-full py-2 text-xs font-semibold uppercase tracking-wider transition-all ${isLogin ? "bg-[#ff6b00] text-black shadow-md" : "text-neutral-500 dark:text-white/50 hover:text-neutral-900 dark:hover:text-white"
+                }`}
             >
               Sign In
             </button>
             <button
               onClick={() => setIsLogin(false)}
-              className={`flex-1 rounded-full py-2 text-xs font-semibold uppercase tracking-wider transition-all ${
-                !isLogin ? "bg-[#ff6b00] text-black shadow-md" : "text-neutral-500 dark:text-white/50 hover:text-neutral-900 dark:hover:text-white"
-              }`}
+              className={`flex-1 rounded-full py-2 text-xs font-semibold uppercase tracking-wider transition-all ${!isLogin ? "bg-[#ff6b00] text-black shadow-md" : "text-neutral-500 dark:text-white/50 hover:text-neutral-900 dark:hover:text-white"
+                }`}
             >
               Register
             </button>

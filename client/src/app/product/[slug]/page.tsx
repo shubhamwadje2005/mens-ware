@@ -464,8 +464,8 @@ export default function ProductPage() {
 
   const relatedProducts = product
     ? allProducts
-        .filter((p) => p.category === product.category && (p._id || p.id) !== productId)
-        .slice(0, 4)
+      .filter((p) => p.category === product.category && (p._id || p.id) !== productId)
+      .slice(0, 4)
     : [];
 
   if (productLoading) {
@@ -529,10 +529,10 @@ export default function ProductPage() {
 
           {/* Product Hero Grid */}
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
-            
+
             {/* Left: Interactive Media Gallery (7 cols on desktop) */}
             <div className="lg:col-span-7 flex flex-col gap-4">
-              
+
               {/* Main Image with Interactive Horizontal Swipe, Top Story Segments & Zoom */}
               <div className="relative w-full">
                 <div
@@ -556,11 +556,10 @@ export default function ProductPage() {
                           className="h-1.5 flex-1 rounded-full cursor-pointer py-1 -my-1 group/seg"
                         >
                           <div
-                            className={`h-full w-full rounded-full transition-all duration-200 ${
-                              sIdx === selectedImageIndex
+                            className={`h-full w-full rounded-full transition-all duration-200 ${sIdx === selectedImageIndex
                                 ? "bg-[#ff6b00] shadow-[0_0_10px_rgba(255,107,0,0.9)] scale-y-125"
                                 : "bg-white/35 group-hover/seg:bg-white/70 backdrop-blur-sm"
-                            }`}
+                              }`}
                           />
                         </button>
                       ))}
@@ -570,14 +569,13 @@ export default function ProductPage() {
                   <img
                     src={currentMainImage}
                     alt={product.name}
-                    className={`h-full w-full object-cover transition-transform duration-200 ${
-                      isZoomed ? "scale-150" : "scale-100"
-                    } ${isOutOfStock ? "opacity-75 grayscale-[20%]" : ""}`}
+                    className={`h-full w-full object-cover transition-transform duration-200 ${isZoomed ? "scale-150" : "scale-100"
+                      } ${isOutOfStock ? "opacity-75 grayscale-[20%]" : ""}`}
                     style={
                       isZoomed
                         ? {
-                            transformOrigin: `${mousePos.x}% ${mousePos.y}%`,
-                          }
+                          transformOrigin: `${mousePos.x}% ${mousePos.y}%`,
+                        }
                         : undefined
                     }
                   />
@@ -621,11 +619,10 @@ export default function ProductPage() {
                     type="button"
                     disabled={selectedImageIndex <= 0}
                     onClick={() => navigatePhoto("left")}
-                    className={`h-11 w-11 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center transition-all shrink-0 z-10 border ${
-                      selectedImageIndex <= 0
+                    className={`h-11 w-11 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center transition-all shrink-0 z-10 border ${selectedImageIndex <= 0
                         ? "opacity-25 cursor-not-allowed pointer-events-none bg-neutral-100 dark:bg-neutral-900/60 text-neutral-400 dark:text-neutral-600 border-neutral-200 dark:border-white/5 scale-95 shadow-none"
                         : "bg-white dark:bg-neutral-800 text-neutral-800 dark:text-white border-neutral-300 dark:border-white/20 shadow-md hover:bg-[#ff6b00] hover:text-black dark:hover:bg-[#ff6b00] dark:hover:text-black hover:border-[#ff6b00] active:scale-95 cursor-pointer"
-                    }`}
+                      }`}
                     aria-label="Previous Photo"
                     title={selectedImageIndex <= 0 ? "No previous photo" : "Previous Photo (मागील फोटो)"}
                   >
@@ -644,11 +641,10 @@ export default function ProductPage() {
                         data-thumb-btn
                         type="button"
                         onClick={() => setSelectedImageIndex(idx)}
-                        className={`relative shrink-0 h-20 w-16 sm:h-22 sm:w-20 rounded-xl overflow-hidden border-2 transition-all group cursor-pointer ${
-                          selectedImageIndex === idx
+                        className={`relative shrink-0 h-20 w-16 sm:h-22 sm:w-20 rounded-xl overflow-hidden border-2 transition-all group cursor-pointer ${selectedImageIndex === idx
                             ? "border-[#ff6b00] ring-2 ring-[#ff6b00]/40 shadow-[0_0_15px_rgba(255,107,0,0.35)] scale-95"
                             : "border-neutral-300 dark:border-white/15 opacity-60 hover:opacity-100 hover:border-neutral-500 dark:hover:border-white/40"
-                        }`}
+                          }`}
                       >
                         <img src={imgUrl} alt={`Thumbnail ${idx + 1}`} className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
                         <span className="absolute bottom-1 right-1 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-black/80 text-white border border-white/10">
@@ -663,11 +659,10 @@ export default function ProductPage() {
                     type="button"
                     disabled={selectedImageIndex >= activeGallery.length - 1}
                     onClick={() => navigatePhoto("right")}
-                    className={`h-11 w-11 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center transition-all shrink-0 z-10 border ${
-                      selectedImageIndex >= activeGallery.length - 1
+                    className={`h-11 w-11 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center transition-all shrink-0 z-10 border ${selectedImageIndex >= activeGallery.length - 1
                         ? "opacity-25 cursor-not-allowed pointer-events-none bg-neutral-100 dark:bg-neutral-900/60 text-neutral-400 dark:text-neutral-600 border-neutral-200 dark:border-white/5 scale-95 shadow-none"
                         : "bg-white dark:bg-neutral-800 text-neutral-800 dark:text-white border-neutral-300 dark:border-white/20 shadow-md hover:bg-[#ff6b00] hover:text-black dark:hover:bg-[#ff6b00] dark:hover:text-black hover:border-[#ff6b00] active:scale-95 cursor-pointer"
-                    }`}
+                      }`}
                     aria-label="Next Photo"
                     title={selectedImageIndex >= activeGallery.length - 1 ? "No next photo" : "Next Photo (पुढील फोटो)"}
                   >
@@ -770,11 +765,10 @@ export default function ProductPage() {
                           type="button"
                           disabled={isLeftDisabled}
                           onClick={() => navigateVariant("left")}
-                          className={`h-8 w-8 rounded-xl flex items-center justify-center transition-all shrink-0 z-20 ${
-                            isLeftDisabled
+                          className={`h-8 w-8 rounded-xl flex items-center justify-center transition-all shrink-0 z-20 ${isLeftDisabled
                               ? "bg-neutral-100 dark:bg-neutral-900/60 text-neutral-300 dark:text-neutral-600 border border-neutral-200 dark:border-white/10 shadow-none cursor-not-allowed pointer-events-none scale-90"
                               : "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white border border-neutral-300 dark:border-white/20 shadow-md hover:bg-[#ff6b00] hover:text-black dark:hover:bg-[#ff6b00] dark:hover:text-black hover:border-[#ff6b00] hover:scale-105 active:scale-90 cursor-pointer"
-                          }`}
+                            }`}
                           title={isLeftDisabled ? "No previous color" : "Previous Color Variant"}
                           aria-label="Previous Color Variant"
                         >
@@ -802,13 +796,12 @@ export default function ProductPage() {
                                 setSelectedColor(color.name);
                                 setSelectedImageIndex(0);
                               }}
-                              className={`group/cbtn relative shrink-0 rounded-2xl transition-all p-1 bg-neutral-100 dark:bg-[#161616] cursor-pointer ${
-                                isSelected
+                              className={`group/cbtn relative shrink-0 rounded-2xl transition-all p-1 bg-neutral-100 dark:bg-[#161616] cursor-pointer ${isSelected
                                   ? "border-2 border-neutral-950 dark:border-white ring-2 ring-neutral-950/20 dark:ring-white/40 shadow-lg scale-[1.04]"
                                   : isColorAvail
-                                  ? "border border-neutral-300 dark:border-white/20 hover:border-neutral-600 dark:hover:border-white/60 hover:scale-[1.02]"
-                                  : "border border-red-500/40 opacity-50 hover:opacity-80"
-                              }`}
+                                    ? "border border-neutral-300 dark:border-white/20 hover:border-neutral-600 dark:hover:border-white/60 hover:scale-[1.02]"
+                                    : "border border-red-500/40 opacity-50 hover:opacity-80"
+                                }`}
                               style={{ width: "76px", height: "96px" }}
                               title={`${color.name} ${!isColorAvail ? "(Out of Stock)" : ""}`}
                             >
@@ -846,11 +839,10 @@ export default function ProductPage() {
                           type="button"
                           disabled={isRightDisabled}
                           onClick={() => navigateVariant("right")}
-                          className={`h-8 w-8 rounded-xl flex items-center justify-center transition-all shrink-0 z-20 ${
-                            isRightDisabled
+                          className={`h-8 w-8 rounded-xl flex items-center justify-center transition-all shrink-0 z-20 ${isRightDisabled
                               ? "bg-neutral-100 dark:bg-neutral-900/60 text-neutral-300 dark:text-neutral-600 border border-neutral-200 dark:border-white/10 shadow-none cursor-not-allowed pointer-events-none scale-90"
                               : "bg-white dark:bg-neutral-800 text-neutral-900 dark:text-white border border-neutral-300 dark:border-white/20 shadow-md hover:bg-[#ff6b00] hover:text-black dark:hover:bg-[#ff6b00] dark:hover:text-black hover:border-[#ff6b00] hover:scale-105 active:scale-90 cursor-pointer"
-                          }`}
+                            }`}
                           title={isRightDisabled ? "No next color" : "Next Color Variant"}
                           aria-label="Next Color Variant"
                         >
@@ -891,25 +883,23 @@ export default function ProductPage() {
                             onClick={() => {
                               if (!isSizeOut) setSelectedSize(size);
                             }}
-                            className={`relative flex flex-col items-center justify-center rounded-xl py-2 px-2 border transition-all text-xs font-medium select-none ${
-                              isSizeOut
+                            className={`relative flex flex-col items-center justify-center rounded-xl py-2 px-2 border transition-all text-xs font-medium select-none ${isSizeOut
                                 ? isSelected
                                   ? "border-2 border-red-500/80 bg-red-950/20 dark:bg-red-950/40 shadow-sm cursor-not-allowed"
                                   : "border border-dashed border-neutral-300 dark:border-white/15 bg-neutral-100/70 dark:bg-white/[0.02] cursor-not-allowed opacity-75"
                                 : isSelected
-                                ? "border-2 border-[#ff6b00] bg-[#ff6b00] text-black font-extrabold shadow-[0_0_15px_rgba(255,107,0,0.35)] scale-[1.04] cursor-pointer"
-                                : "border-neutral-300 dark:border-white/15 bg-white dark:bg-white/[0.03] text-neutral-800 dark:text-white/80 hover:border-[#ff6b00] hover:text-[#ff6b00] hover:scale-105 shadow-xs cursor-pointer"
-                            }`}
+                                  ? "border-2 border-[#ff6b00] bg-[#ff6b00] text-black font-extrabold shadow-[0_0_15px_rgba(255,107,0,0.35)] scale-[1.04] cursor-pointer"
+                                  : "border-neutral-300 dark:border-white/15 bg-white dark:bg-white/[0.03] text-neutral-800 dark:text-white/80 hover:border-[#ff6b00] hover:text-[#ff6b00] hover:scale-105 shadow-xs cursor-pointer"
+                              }`}
                             title={isSizeOut ? `${size} (Sold Out)` : `${size} (${stockForThisSize} in stock)`}
                           >
                             <span
-                              className={`text-xs font-bold leading-tight ${
-                                isSizeOut
+                              className={`text-xs font-bold leading-tight ${isSizeOut
                                   ? "text-neutral-400 dark:text-neutral-500 line-through decoration-red-500/70 decoration-1.5"
                                   : isSelected
-                                  ? "text-black font-black text-sm"
-                                  : "text-neutral-800 dark:text-white"
-                              }`}
+                                    ? "text-black font-black text-sm"
+                                    : "text-neutral-800 dark:text-white"
+                                }`}
                             >
                               {size}
                             </span>
@@ -967,13 +957,12 @@ export default function ProductPage() {
                           handleAddToCart();
                         }
                       }}
-                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-3.5 text-xs font-bold tracking-wider uppercase transition-all duration-300 cursor-pointer ${
-                        isOutOfStock
+                      className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-3.5 text-xs font-bold tracking-wider uppercase transition-all duration-300 cursor-pointer ${isOutOfStock
                           ? "bg-neutral-200 dark:bg-white/5 text-neutral-400 dark:text-white/30 border border-neutral-300 dark:border-white/10 cursor-not-allowed"
                           : inCart
-                          ? "bg-[#062e1e]/80 dark:bg-emerald-950/60 border border-emerald-500/60 text-emerald-400 dark:text-emerald-300 shadow-md hover:bg-emerald-900/60 hover:border-emerald-400"
-                          : "btn-pill btn-pill-gold shadow-lg"
-                      }`}
+                            ? "bg-[#062e1e]/80 dark:bg-emerald-950/60 border border-emerald-500/60 text-emerald-400 dark:text-emerald-300 shadow-md hover:bg-emerald-900/60 hover:border-emerald-400"
+                            : "btn-pill btn-pill-gold shadow-lg"
+                        }`}
                       title={inCart ? "Item in bag. Click to view bag." : "Add to Cart"}
                     >
                       {isOutOfStock ? (
@@ -995,11 +984,10 @@ export default function ProductPage() {
                     <button
                       type="button"
                       onClick={handleToggleWishlist}
-                      className={`h-12 w-12 shrink-0 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-xs ${
-                        inWishlist
+                      className={`h-12 w-12 shrink-0 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-xs ${inWishlist
                           ? "border-[#ff6b00] bg-[#ff6b00]/10 text-[#ff6b00]"
                           : "border-neutral-300 dark:border-white/10 bg-white dark:bg-transparent text-neutral-600 dark:text-white/50 hover:border-neutral-400 dark:hover:border-white/30 hover:text-neutral-950 dark:hover:text-white"
-                      }`}
+                        }`}
                     >
                       <Heart size={18} fill={inWishlist ? "currentColor" : "none"} />
                     </button>
@@ -1053,11 +1041,10 @@ export default function ProductPage() {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`pb-4 text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${
-                    activeTab === tab.key
+                  className={`pb-4 text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer ${activeTab === tab.key
                       ? "border-b-2 border-[#ff6b00] text-[#ff6b00]"
                       : "text-neutral-500 dark:text-white/40 hover:text-neutral-900 dark:hover:text-white"
-                  }`}
+                    }`}
                 >
                   {tab.label}
                 </button>

@@ -76,11 +76,10 @@ export default function NewArrivalsPage() {
                 <button
                   key={category}
                   onClick={() => setActiveCategory(category)}
-                  className={`shrink-0 rounded-full px-4 py-2 text-[10px] font-bold tracking-[0.15em] uppercase transition-all duration-300 sm:px-5 sm:py-2.5 sm:text-[11px] ${
-                    activeCategory === category
+                  className={`shrink-0 rounded-full px-4 py-2 text-[10px] font-bold tracking-[0.15em] uppercase transition-all duration-300 sm:px-5 sm:py-2.5 sm:text-[11px] ${activeCategory === category
                       ? "bg-[#ff6b00] text-black"
                       : "border border-white/10 text-white/50 hover:border-[#ff6b00]/50 hover:text-white"
-                  }`}
+                    }`}
                 >
                   {category}
                 </button>

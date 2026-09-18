@@ -78,11 +78,10 @@ export default function ShopPage() {
                   <button
                     key={category}
                     onClick={() => setActiveCategory(category)}
-                    className={`shrink-0 rounded-full px-4 py-2 text-[10px] font-bold tracking-[0.15em] uppercase transition-all duration-300 sm:px-5 sm:py-2.5 sm:text-[11px] ${
-                      activeCategory === category
+                    className={`shrink-0 rounded-full px-4 py-2 text-[10px] font-bold tracking-[0.15em] uppercase transition-all duration-300 sm:px-5 sm:py-2.5 sm:text-[11px] ${activeCategory === category
                         ? "bg-[#ff6b00] text-black shadow-md"
                         : "border border-black/10 dark:border-white/10 bg-black/[0.02] dark:bg-white/[0.02] text-neutral-700 dark:text-white/60 hover:border-[#ff6b00]/60 hover:text-black dark:hover:text-white"
-                    }`}
+                      }`}
                   >
                     {category}
                   </button>
@@ -107,11 +106,10 @@ export default function ShopPage() {
 
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center gap-2 rounded-full border px-4 py-2.5 text-[10px] font-bold tracking-[0.15em] uppercase transition-all sm:text-[11px] ${
-                    showFilters
+                  className={`flex items-center gap-2 rounded-full border px-4 py-2.5 text-[10px] font-bold tracking-[0.15em] uppercase transition-all sm:text-[11px] ${showFilters
                       ? "border-[#ff6b00] bg-[#ff6b00]/10 text-[#ff6b00]"
                       : "border-black/10 dark:border-white/10 bg-white dark:bg-white/5 text-neutral-700 dark:text-white/60 hover:border-[#ff6b00]/50 hover:text-black dark:hover:text-white"
-                  }`}
+                    }`}
                 >
                   <SlidersHorizontal size={12} />
                   Filters
@@ -161,11 +159,10 @@ export default function ShopPage() {
                       <button
                         key={price}
                         onClick={() => setPriceRange([0, price])}
-                        className={`rounded-full px-3 py-1 text-[10px] font-medium transition-colors ${
-                          priceRange[1] === price
+                        className={`rounded-full px-3 py-1 text-[10px] font-medium transition-colors ${priceRange[1] === price
                             ? "bg-[#ff6b00]/20 text-[#ff6b00]"
                             : "bg-black/5 dark:bg-white/5 text-neutral-600 dark:text-white/30 hover:text-black dark:hover:text-white"
-                        }`}
+                          }`}
                       >
                         Under ${price}
                       </button>

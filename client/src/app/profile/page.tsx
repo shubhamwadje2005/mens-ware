@@ -253,8 +253,8 @@ function ProfileContent() {
     const finalAvatar = isAvatarRemoved
       ? ""
       : avatar && avatar.trim() !== ""
-      ? avatar.trim()
-      : user?.avatar || "";
+        ? avatar.trim()
+        : user?.avatar || "";
 
     const payload: Partial<User> & { password?: string; removeAvatar?: boolean } = {
       name: finalName,
@@ -382,21 +382,19 @@ function ProfileContent() {
                   setActiveTab("profile");
                   setIsEditing(false);
                 }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-                  activeTab === "profile"
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "profile"
                     ? "bg-[#ff6b00] text-black shadow-lg"
                     : "text-neutral-600 dark:text-white/50 hover:text-neutral-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
-                }`}
+                  }`}
               >
                 <UserIcon size={14} /> Personal Profile
               </button>
               <button
                 onClick={() => setActiveTab("addresses")}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-                  activeTab === "addresses"
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "addresses"
                     ? "bg-[#ff6b00] text-black shadow-lg"
                     : "text-neutral-600 dark:text-white/50 hover:text-neutral-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
-                }`}
+                  }`}
               >
                 <MapPin size={14} /> Saved Addresses ({user?.addresses?.length || 0})
               </button>
@@ -720,11 +718,10 @@ function ProfileContent() {
                       return (
                         <div
                           key={addrId}
-                          className={`relative rounded-2xl border p-5 transition-all shadow-sm dark:shadow-none ${
-                            addr.isDefault
+                          className={`relative rounded-2xl border p-5 transition-all shadow-sm dark:shadow-none ${addr.isDefault
                               ? "border-[#ff6b00]/40 bg-[#ff6b00]/[0.03] dark:bg-[#ff6b00]/[0.02]"
                               : "border-black/10 dark:border-white/[0.08] bg-white dark:bg-[#0c0c0c]"
-                          }`}
+                            }`}
                         >
                           {addr.isDefault && (
                             <span className="absolute top-4 right-4 inline-flex items-center gap-1 rounded-full bg-[#ff6b00]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#ff6b00] border border-[#ff6b00]/20">

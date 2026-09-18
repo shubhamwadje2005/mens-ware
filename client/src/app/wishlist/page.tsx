@@ -35,13 +35,13 @@ export default function WishlistPage() {
       color,
       defaultVariant
         ? {
-            variantId: defaultVariant._id,
-            sku: defaultVariant.sku,
-            price: defaultVariant.sellingPrice,
-            image: variantImg,
-            stock: defaultVariant.stock,
-            colorCode: defaultVariant.colorCode,
-          }
+          variantId: defaultVariant._id,
+          sku: defaultVariant.sku,
+          price: defaultVariant.sellingPrice,
+          image: variantImg,
+          stock: defaultVariant.stock,
+          colorCode: defaultVariant.colorCode,
+        }
         : undefined
     );
     removeItem(product._id || product.id || "");

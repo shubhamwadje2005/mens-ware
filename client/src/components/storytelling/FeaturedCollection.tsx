@@ -28,7 +28,7 @@ export default function FeaturedCollection() {
       {/* Large background text */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <motion.span
-          className="text-[20vw] font-bold tracking-tighter text-white/[0.015] uppercase"
+          className="text-[20vw] font-bold tracking-tighter text-white/[0.015] uppercase transform-gpu will-change-transform"
           style={{ x }}
         >
           MAITRI
